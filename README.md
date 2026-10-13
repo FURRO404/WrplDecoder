@@ -6,6 +6,13 @@ Open a replay (or all parts of a server replay, or download one by session id) a
 
 Files stay in your browser. To run it locally: `python3 -m http.server`, then open http://localhost:8000/.
 
-Similar to [wrpl-inspector](https://github.com/maxsupermanhd/wrpl-inspector) by maxsupermanhd, a Go library and desktop GUI for the same format. WrplDecoder is smaller and focused on finding and recording what unknown bytes mean.
+Similar to [wrpl-inspector](https://github.com/maxsupermanhd/wrpl-inspector) by maxsupermanhd, a Go library and desktop GUI for the same format. WrplDecoder is smaller and focused on finding and recording what unknown bytes mean. These features follow wrpl-inspector's ideas:
+
+- download a server replay by session id, and open all its parts as one replay
+- plot one value of a packet kind over the battle time (its byte interpreter)
+- shift the selected bytes by 0-7 bits (its bit shift tab)
+- filter packets by a hex pattern of the payload, and count packets per MPI id
+
+Much of the container and packet framing knowledge also comes from its research.
 
 zstd decoding by [fzstd](https://github.com/101arrowz/fzstd) (MIT).
