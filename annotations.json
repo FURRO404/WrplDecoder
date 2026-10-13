@@ -1,0 +1,276 @@
+[
+  {
+    "scope": "packet",
+    "type": 4,
+    "mpi_id": "0xD039",
+    "offset": 0,
+    "length": 1,
+    "name": "check_byte",
+    "dtype": "u8",
+    "note": "read and ignored by WrplReplayParser"
+  },
+  {
+    "scope": "packet",
+    "type": 4,
+    "mpi_id": "0xD039",
+    "offset": 1,
+    "length": 2,
+    "name": "compressed_flag",
+    "dtype": "i16",
+    "note": "< 0: a zstd block follows (varint sizes); else the replication event follows directly"
+  },
+  {
+    "scope": "packet",
+    "type": 4,
+    "mpi_id": "0xD039",
+    "offset": 3,
+    "length": 1,
+    "name": "class_id",
+    "dtype": "u8",
+    "note": "replication class id (classes sorted by name); valid when compressed_flag >= 0"
+  },
+  {
+    "scope": "packet",
+    "type": 4,
+    "mpi_id": "0xD04A",
+    "offset": 2,
+    "length": 2,
+    "name": "param_count",
+    "dtype": "u16",
+    "note": "count of (u16 id, f32 value) pairs that follow; ids are cockpit instruments (0 airspeed m/s, 39 vertical speed, 40 altitude)"
+  },
+  {
+    "scope": "packet",
+    "type": 4,
+    "mpi_id": "0xF037",
+    "field": 1,
+    "name": "spotter_uid",
+    "dtype": "uid",
+    "note": "A: the unit that spots"
+  },
+  {
+    "scope": "packet",
+    "type": 4,
+    "mpi_id": "0xF037",
+    "field": 2,
+    "name": "spotted_uid",
+    "dtype": "uid",
+    "note": "B: the unit that is spotted"
+  },
+  {
+    "scope": "packet",
+    "type": 4,
+    "mpi_id": "0xF056",
+    "field": 1,
+    "name": "victim_uid",
+    "dtype": "uid",
+    "note": "victim unit id"
+  },
+  {
+    "scope": "packet",
+    "type": 4,
+    "mpi_id": "0xF056",
+    "field": 2,
+    "name": "player_slot",
+    "dtype": "u32",
+    "note": "meaning as read by WrplReplayParser"
+  },
+  {
+    "scope": "packet",
+    "type": 4,
+    "mpi_id": "0xF056",
+    "field": 3,
+    "name": "vehicle",
+    "dtype": "str",
+    "note": "victim vehicle"
+  },
+  {
+    "scope": "packet",
+    "type": 4,
+    "mpi_id": "0xF056",
+    "field": 4,
+    "name": "attacker_uid",
+    "dtype": "uid",
+    "note": "attacker unit id, 0xFFFF = no attacker"
+  },
+  {
+    "scope": "packet",
+    "type": 4,
+    "mpi_id": "0xF056",
+    "field": 5,
+    "name": "is_fire",
+    "dtype": "u8",
+    "note": "as read by WrplReplayParser; also seen as 1 when there is no attacker"
+  },
+  {
+    "scope": "packet",
+    "type": 4,
+    "mpi_id": "0xF056",
+    "field": 6,
+    "name": "unit_type",
+    "dtype": "u8",
+    "note": "meaning as read by WrplReplayParser"
+  },
+  {
+    "scope": "packet",
+    "type": 4,
+    "mpi_id": "0xF058",
+    "field": 1,
+    "name": "killer_slot",
+    "dtype": "u32",
+    "note": "killer's player slot; 0xFFFFFFFF = no killer"
+  },
+  {
+    "scope": "packet",
+    "type": 4,
+    "mpi_id": "0xF058",
+    "field": 2,
+    "name": "killer_vehicle",
+    "dtype": "str",
+    "note": "killer's vehicle, empty for a crash"
+  },
+  {
+    "scope": "packet",
+    "type": 4,
+    "mpi_id": "0xF058",
+    "field": 3,
+    "name": "victim_uid",
+    "dtype": "uid",
+    "note": "victim unit id; ground units carry 0x0800"
+  },
+  {
+    "scope": "packet",
+    "type": 4,
+    "mpi_id": "0xF058",
+    "field": 4,
+    "name": "killer_uid",
+    "dtype": "uid",
+    "note": "killer unit id, 0xFFFF for no killer"
+  },
+  {
+    "scope": "packet",
+    "type": 4,
+    "mpi_id": "0xF058",
+    "field": 10,
+    "name": "weapon",
+    "dtype": "str",
+    "note": "weapon or round name"
+  },
+  {
+    "scope": "packet",
+    "type": 4,
+    "mpi_id": "0xF058",
+    "field": 11,
+    "name": "death_type",
+    "dtype": "u32",
+    "note": "DeathType as read by WrplReplayParser; values 0-10 seen"
+  },
+  {
+    "scope": "packet",
+    "type": 4,
+    "mpi_id": "0xF078",
+    "field": 1,
+    "name": "player_slot",
+    "dtype": "u32",
+    "note": "meaning as read by WrplReplayParser"
+  },
+  {
+    "scope": "packet",
+    "type": 4,
+    "mpi_id": "0xF078",
+    "field": 2,
+    "name": "award",
+    "dtype": "str",
+    "note": "meaning as read by WrplReplayParser"
+  },
+  {
+    "scope": "packet",
+    "type": 4,
+    "mpi_id": "0xF078",
+    "field": 3,
+    "name": "stage",
+    "dtype": "u32",
+    "note": "meaning as read by WrplReplayParser"
+  },
+  {
+    "scope": "packet",
+    "type": 4,
+    "mpi_id": "0xF078",
+    "field": 4,
+    "name": "wp",
+    "dtype": "u32",
+    "note": "meaning as read by WrplReplayParser"
+  },
+  {
+    "scope": "packet",
+    "type": 4,
+    "mpi_id": "0xF078",
+    "field": 5,
+    "name": "exp",
+    "dtype": "u32",
+    "note": "meaning as read by WrplReplayParser"
+  },
+  {
+    "scope": "packet",
+    "type": 4,
+    "mpi_id": "0xF118",
+    "field": 1,
+    "name": "target_uid",
+    "dtype": "uid",
+    "note": "unit hit by the replay author"
+  },
+  {
+    "scope": "packet",
+    "type": 4,
+    "mpi_id": "0xF157",
+    "field": 1,
+    "name": "victim_uid",
+    "dtype": "uid",
+    "note": "meaning as read by WrplReplayParser"
+  },
+  {
+    "scope": "packet",
+    "type": 4,
+    "mpi_id": "0xF157",
+    "field": 2,
+    "name": "player_slot",
+    "dtype": "u32",
+    "note": "meaning as read by WrplReplayParser"
+  },
+  {
+    "scope": "packet",
+    "type": 4,
+    "mpi_id": "0xF157",
+    "field": 3,
+    "name": "vehicle",
+    "dtype": "str",
+    "note": "meaning as read by WrplReplayParser"
+  },
+  {
+    "scope": "packet",
+    "type": 4,
+    "mpi_id": "0xF157",
+    "field": 4,
+    "name": "attacker_uid",
+    "dtype": "uid",
+    "note": "meaning as read by WrplReplayParser"
+  },
+  {
+    "scope": "packet",
+    "type": 4,
+    "mpi_id": "0xF157",
+    "field": 5,
+    "name": "unit_type",
+    "dtype": "u8",
+    "note": "meaning as read by WrplReplayParser"
+  },
+  {
+    "scope": "packet",
+    "type": 5,
+    "offset": 0,
+    "length": 2,
+    "name": "next_part",
+    "dtype": "u16",
+    "note": "number of the next stream part file (NNNN.wrpl)"
+  }
+]

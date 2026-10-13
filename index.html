@@ -1,0 +1,445 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>WrplDecoder</title>
+<style>
+:root {
+  --bg: #1b1d21; --panel: #23262b; --line: #353941; --fg: #d8dce2; --dim: #8a919c; --sel: #3d6bd6; --pstart: #e0a040;
+  --rowh: 18px; --pkh: 190px; --hexw: 760px; font-size: 13px; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { margin: 0; height: 100vh; display: grid; grid-template-rows: auto var(--pkh) 6px 1fr; background: var(--bg);
+  color: var(--fg); font-family: system-ui, sans-serif; }
+.mono { font-family: ui-monospace, Consolas, monospace; }
+button, input, select { background: #2c3036; color: var(--fg); border: 1px solid var(--line); border-radius: 3px;
+  padding: 3px 6px; font: inherit; }
+button:hover { border-color: #5a6170; cursor: pointer; }
+.bar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; padding: 5px 8px; }
+.bar label, .bar > span { white-space: nowrap; }
+.bar select { max-width: 230px; }
+#top { border-bottom: 1px solid var(--line); background: var(--panel); }
+#summary, #status, #pkbar { color: var(--dim); }
+#err { color: #f08080; }
+#coverage b { color: #9fd49f; }
+#pk { display: grid; grid-template-rows: auto 1fr; min-height: 0; }
+#pklist { overflow-y: auto; position: relative; min-height: 0; }
+#pklist .r { position: absolute; left: 0; right: 0; height: var(--rowh); line-height: var(--rowh); display: grid;
+  grid-template-columns: 8ch 11ch minmax(0, 1fr) 9ch; column-gap: 2ch; padding: 0 8px; cursor: pointer; white-space: nowrap; }
+#pklist .r > * { overflow: hidden; text-overflow: ellipsis; }
+#pklist .r:hover { background: #2a2e35; }
+#pklist .r.cur { background: #30405e; }
+#pklist .h { z-index: 2; background: var(--panel); color: var(--dim); }
+#pklist .sy { color: var(--dim); }
+#pklist .dt { color: #c9b27a; }
+.split { background: var(--line); }
+.split:hover { background: #5a6170; }
+#hsplit { cursor: row-resize; } #vsplit { cursor: col-resize; }
+#main { display: grid; grid-template-columns: var(--hexw) 6px 1fr; min-height: 0; }
+#hexwrap { display: flex; min-height: 0; min-width: 0; overflow: hidden; }
+#hex { overflow: hidden; user-select: none; padding: 0 6px; flex: 1; min-width: 0; }
+#hex div { height: var(--rowh); line-height: var(--rowh); white-space: pre; }
+#hex .o { color: var(--dim); display: inline-block; width: 82px; }
+#hex .b { display: inline-block; width: 24px; text-align: center; }
+#hex .b.g { margin-right: 6px; }
+#hex .a { display: inline-block; width: 9px; text-align: center; }
+#hex .asc { margin-left: 10px; }
+#hex .ps { box-shadow: inset 2px 0 0 var(--pstart); }
+#hex .s { background: var(--sel) !important; color: #fff; }
+.prefix { background: #5b3a3a; } .ptype { background: #6b4a1f; } .ts { background: #3d4f2a; } .mpihdr { background: #2a4560; }
+.ann { background: #4b3462; } .hdr { background: #2f4a48; } .blk { background: #3a3a52; } .idf { background: #2a3a4a; } .fld { background: #2b2f36; }
+#legend { margin-left: auto; }
+#legend span { padding: 0 5px; border-radius: 2px; }
+#vscroll { overflow-y: scroll; width: 16px; }
+#side { overflow-y: auto; padding: 8px 12px; min-width: 0; }
+#side h3 { margin: 12px 0 4px; font-size: 13px; color: var(--dim); text-transform: uppercase; letter-spacing: .05em; }
+.stk { border-left: 3px solid #9b6fd0; padding: 3px 8px; margin: 3px 0; }
+.stk.packet { border-color: var(--pstart); font-weight: 600; } .stk.mpi { border-color: #4a8fd6; font-weight: 600; }
+.stk .t, .stk .rg, .stk .nt { color: var(--dim); }
+.stk .rg { float: right; margin-left: 8px; }
+.stk .nt { font-style: italic; }
+.stk .x { float: right; margin-left: 6px; padding: 0 5px; }
+table { border-collapse: collapse; } td { padding: 1px 8px 1px 0; vertical-align: top; word-break: break-all; }
+td:first-child { color: var(--dim); white-space: nowrap; }
+#plot { width: 100%; height: 160px; background: #202328; border: 1px solid var(--line); cursor: crosshair; }
+#adv > summary { cursor: pointer; color: var(--dim); margin: 12px 0 4px; }
+#form { display: grid; grid-template-columns: 90px 1fr; gap: 4px 8px; align-items: center; max-width: 520px; }
+#form input { width: 100%; }
+#drop { position: fixed; inset: 0; background: rgba(40,80,160,.35); display: none; place-items: center; font-size: 22px; z-index: 9; }
+</style>
+</head>
+<body>
+<div id="top" class="bar">
+  <label><button onclick="this.nextElementSibling.click()">Open files</button><input id="files" type="file" accept=".wrpl" multiple hidden></label>
+  <input id="sid" class="mono" size="18" placeholder="session id (hex)"><button id="dl">Download</button>
+  <label><input type="radio" name="view" value="stream" checked> stream</label>
+  <label><input type="radio" name="view" value="raw"> raw file</label>
+  <select id="part"></select>
+  <input id="goto" class="mono" size="10" placeholder="goto 0x...">
+  <span id="coverage"></span><span id="summary"></span><span id="status"></span><span id="err"></span>
+</div>
+<div id="pk">
+  <div id="pkbar" class="bar">
+    <select id="fev"></select><select id="ftype"></select><select id="fmid"></select>
+    <label><input type="checkbox" id="hsync"> hide sync</label>
+    <label><input type="checkbox" id="hunk"> hide unknown</label>
+    <input id="grep" class="mono" size="16" placeholder="payload hex regex">
+    <span id="count"></span>
+    <span id="legend"><span class="prefix">size</span> <span class="ptype">type</span> <span class="ts">time</span>
+      <span class="mpihdr">MPI hdr</span> <span class="idf">field table</span> <span class="fld">field</span>
+      <span class="ann">annotation</span> <span class="hdr">header</span> <span class="blk">BLK</span> plain = unknown</span>
+  </div>
+  <div id="pklist" class="mono"></div>
+</div>
+<div id="hsplit" class="split"></div>
+<div id="main">
+  <div id="hexwrap"><div id="hex" class="mono"></div><div id="vscroll"><div id="vspace"></div></div></div>
+  <div id="vsplit" class="split"></div>
+  <div id="side">
+    <div id="selinfo" class="mono">Open or drop .wrpl files (all parts of a server replay at once), then click a byte.</div>
+    <h3>Known</h3><div id="stack"></div>
+    <h3>Raw interpretations</h3>
+    <label>shift <input id="shift" type="number" min="0" max="7" value="0" style="width:4em"> bits</label>
+    <table id="interp" class="mono"></table>
+    <h3>Plot over time</h3>
+    <div class="bar" style="padding:0 0 4px"><select id="pdt"></select><button id="plotBtn">Plot selection</button><span id="pinfo" class="mono"></span></div>
+    <canvas id="plot"></canvas>
+    <details id="adv"><summary>Advanced</summary>
+      <h3>Save annotation</h3>
+      <div id="form">
+        <span>scope</span><span id="fctx" class="mono"></span>
+        <span>field</span><input id="ffield" class="mono" placeholder="field id (field-table messages); empty = byte offset">
+        <span>offset</span><input id="foff" class="mono">
+        <span>length</span><input id="flen" class="mono">
+        <span>bit offset</span><input id="fbo" class="mono" placeholder="optional, MSB-first from offset">
+        <span>bit length</span><input id="fbl" class="mono" placeholder="optional">
+        <span>name</span><input id="fname">
+        <span>type</span><input id="fdtype" list="dtypes" placeholder="u16, f32, varint, str...">
+        <span>note</span><input id="fnote">
+        <span></span><span><button id="save">Save annotation</button> <button id="export">Export</button>
+          <button onclick="this.nextElementSibling.click()">Import</button><input id="import" type="file" accept=".json" hidden></span>
+      </div>
+    </details>
+    <datalist id="dtypes"></datalist>
+  </div>
+</div>
+<div id="drop">Drop .wrpl files</div>
+<script src="vendor/fzstd.js"></script>
+<script src="decode.js"></script>
+<script>
+const $ = id => document.getElementById(id), ROWH = 18, CHUNK = 4096, MAXSPACE = 8e6, USER = "wrpl-annotations";
+const DTYPES = ["", "u8", "i8", "u16", "i16", "u32", "i32", "u64", "i64", "f32", "f64", "bool", "varint", "uid", "str", "bits", "vec3f", "bytes"];
+const S = {r: null, ann: null, view: "stream", part: 0, top: 0, a: null, b: null, drag: false, cache: new Map(), rows: [], shown: [], cur: -1, ctx: null};
+const esc = s => String(s).replace(/[&<>"]/g, c => `&#${c.charCodeAt(0)};`);
+const hx = (n, w = 0) => "0x" + n.toString(16).toUpperCase().padStart(w, "0");
+const time = ms => `${Math.floor(ms / 60000)}:${String(Math.floor(ms / 1000) % 60).padStart(2, "0")}.${String(ms % 1000).padStart(3, "0")}`;
+const HEX = Array.from({length: 256}, (_, i) => i.toString(16).padStart(2, "0"));
+const store = (k, v) => { try { localStorage.setItem(k, v); } catch (e) {} };
+const recall = k => { try { return localStorage.getItem(k); } catch (e) { return null; } };
+const fail = e => { $("err").textContent = e.message || e; };
+const buf = () => S.view === "raw" ? S.r.parts[S.part].data : S.r.parts[S.part].stream;
+$("pdt").innerHTML = DTYPES.map(d => `<option value="${d}">${d || "auto"}</option>`).join("");
+$("dtypes").innerHTML = DTYPES.slice(1).map(d => `<option>${d}</option>`).join("");
+
+async function init() {
+  let base = [];
+  try { base = await (await fetch("annotations.json")).json(); } catch (e) { fail("annotations.json not loaded (serve over http)"); }
+  S.ann = new Annotations(base, JSON.parse(recall(USER) || "[]"));
+}
+
+async function load(files) {
+  $("err").textContent = "";
+  $("status").textContent = "decoding...";
+  try { S.r = await openReplay(files); } catch (e) { return fail(e); }
+  const s = summary(S.r);
+  $("summary").textContent = `${s.version} ${s.comp} ${s.server ? "server" : "client"} · session ${s.session} · ${s.level} · ` +
+    `${s.parts.length} file(s), ${s.fileSize} B, stream ${s.streamSize} B, ${s.packets} packets` + (s.error ? " · " + s.error : "");
+  $("status").textContent = "";
+  $("part").innerHTML = S.r.parts.map((p, i) => `<option value="${i}">${esc(p.name)}</option>`).join("");
+  $("part").hidden = S.r.parts.length < 2;
+  S.part = 0; S.ctx = null; S.plot = [];
+  $("selinfo").textContent = "Click a byte."; $("pinfo").textContent = $("fctx").textContent = "";
+  $("plot").getContext("2d").clearRect(0, 0, 1e4, 1e4);
+  events();
+  setView(S.view);
+}
+
+function events() { // per packet: [event label, kind, sync, detail]
+  S.rows = S.r.packets.map(p => event(p, S.ann));
+  const c = coverage(S.r, S.ann);
+  $("coverage").innerHTML = `known <b>${c.known}%</b> (framing ${c.frame} B, annotated ${c.annotated} B = ${c.payload}% of payload)`;
+  const count = f => S.r.packets.reduce((m, p, i) => (m[f(p, i)] = (m[f(p, i)] || 0) + 1, m), {});
+  const opts = (el, all, m, label, sort) => {
+    const v = el.value;
+    el.innerHTML = `<option value="">${all}</option>` + Object.keys(m).sort(sort).map(k => `<option value="${k}">${esc(label(k))} (${m[k]})</option>`).join("");
+    el.value = m[v] ? v : "";
+  };
+  const ev = count((p, i) => S.rows[i][1]), ty = count(p => p.type), mi = count(p => p.mid ?? "");
+  delete mi[""];
+  opts($("fev"), "all events", ev, k => k, (a, b) => KINDS.indexOf(a) - KINDS.indexOf(b));
+  opts($("ftype"), "all types", ty, k => `${k} ${PACKET_TYPES[k] || ""}`);
+  opts($("fmid"), "all MPI ids", mi, k => `${hx(+k, 4)} ${MPI_NAMES[k] || "?"}`, (a, b) => mi[b] - mi[a]);
+  filter(true);
+}
+
+function filter(keep) {
+  const ev = $("fev").value, t = $("ftype").value, m = $("fmid").value, hs = $("hsync").checked, hu = $("hunk").checked;
+  let rx = null;
+  try { rx = $("grep").value ? new RegExp($("grep").value, "i") : null; $("grep").style.borderColor = ""; }
+  catch (e) { $("grep").style.borderColor = "#f08080"; }
+  S.shown = S.r.packets.filter((p, i) => { const e = S.rows[i];
+    return (!ev || e[1] === ev) && (!t || p.type == t) && (!m || p.mid == m) && !(hs && e[2]) && !(hu && e[1] === "unknown") &&
+      (!rx || rx.test(Array.from(p.b.subarray(p.pay, p.end), x => HEX[x]).join(""))); });
+  $("count").textContent = `${S.shown.length} / ${S.r.packets.length}`;
+  if (!keep) $("pklist").scrollTop = 0;
+  list();
+}
+
+function list() {
+  const el = $("pklist"), first = Math.max(0, Math.floor(el.scrollTop / ROWH) - 2), n = Math.ceil(el.clientHeight / ROWH) + 4;
+  let h = `<div style="height:${(S.shown.length + 1) * ROWH}px"></div><div class="r h" style="top:${el.scrollTop}px">` +
+    `<span>idx</span><span>time</span><span>event</span><span>size</span></div>`;
+  for (let i = first; i < Math.min(S.shown.length, first + n); i++) {
+    const p = S.shown[i], [label, , sync, detail] = S.rows[p.idx];
+    const tip = `type ${p.type} ${PACKET_TYPES[p.type] || ""}` + (p.mid !== null ? `\nMPI ${hx(p.mid, 4)} ${MPI_NAMES[p.mid] || "(unnamed)"}` : "") +
+      (p.oid !== null ? `\nobject ${hx(p.oid, 4)}` : "") + `\n${S.r.parts[p.part].name} @ ${hx(p.start)}`;
+    h += `<div class="r${p.idx === S.cur ? " cur" : ""}" data-i="${p.idx}" title="${esc(tip)}" style="top:${(i + 1) * ROWH}px">` +
+      `<span>${p.idx}</span><span>${time(p.ts)}</span><span class="${sync ? "sy" : ""}">${esc(label)}` +
+      `${detail ? `: <span class="dt">${esc(detail)}</span>` : ""}</span><span>${p.end - p.start} B</span></div>`;
+  }
+  el.innerHTML = h;
+}
+
+function setView(v, part = S.part) {
+  S.view = v; S.part = part; $("part").value = part;
+  document.querySelector(`input[name=view][value=${v}]`).checked = true;
+  S.cache.clear(); S.a = S.b = null; S.top = 0;
+  layout(); render();
+  $("stack").innerHTML = $("interp").innerHTML = "";
+}
+
+const rows = () => Math.ceil(buf().length / 16), vis = () => Math.max(1, Math.floor($("hex").clientHeight / ROWH));
+const maxTop = () => Math.max(0, rows() - vis());
+let syncing = false;
+function layout() {
+  if (!S.r) return;
+  $("vspace").style.height = Math.min(rows() * ROWH + $("hex").clientHeight, MAXSPACE) + "px";
+  scrollRow(S.top);
+}
+function scrollRow(r) {
+  S.top = Math.max(0, Math.min(maxTop(), Math.round(r)));
+  const v = $("vscroll");
+  syncing = true;
+  v.scrollTop = maxTop() ? S.top / maxTop() * (v.scrollHeight - v.clientHeight) : 0;
+  requestAnimationFrame(() => syncing = false);
+  render();
+}
+
+function chunk(ci) { // byte classes of one 4 KB chunk: known kind per byte, packet starts
+  if (S.cache.has(ci)) return S.cache.get(ci);
+  const s = ci * CHUNK, e = s + CHUNK, kind = new Array(CHUNK).fill(""), ps = new Uint8Array(CHUNK), pt = S.r.parts[S.part];
+  const known = ["prefix", "ptype", "ts", "mpihdr", "idf", "fld", "hdr", "blk", "ann"];
+  const spans = S.view === "raw" ? [...regions(pt), ...fileSpans(pt, S.ann)] :
+    [...packetsIn(pt, s, e)].flatMap(p => { if (p.start >= s) ps[p.start - s] = 1; return partsOf(p, S.ann); });
+  for (const x of spans) if (known.includes(x.kind))
+    for (let i = Math.max(x.start, s); i < Math.min(x.end, e); i++) if (kind[i - s] !== "ann") kind[i - s] = x.kind;
+  const c = {kind, ps};
+  S.cache.set(ci, c);
+  return c;
+}
+
+function render() {
+  if (!S.r) return;
+  const b = buf(), lo = Math.min(S.a ?? -1, S.b ?? -1), hi = Math.max(S.a ?? -1, S.b ?? -1);
+  let h = "";
+  for (let r = S.top; r < Math.min(rows(), S.top + vis() + 1); r++) {
+    let hs = "", as = "";
+    for (let i = 0, o = r * 16; i < 16; i++, o++) {
+      if (o >= b.length) { hs += `<span class="b"> </span>`; continue; }
+      const c = chunk(Math.floor(o / CHUNK)), j = o % CHUNK, v = b[o];
+      const cls = `${c.kind[j]}${o >= lo && o <= hi ? " s" : ""}`;
+      hs += `<span class="b ${cls}${c.ps[j] ? " ps" : ""}${i === 7 ? " g" : ""}" data-o="${o}">${HEX[v].toUpperCase()}</span>`;
+      as += `<span class="a ${cls}" data-o="${o}">${v >= 32 && v < 127 ? esc(String.fromCharCode(v)) : "."}</span>`;
+    }
+    h += `<div><span class="o">${(r * 16).toString(16).toUpperCase().padStart(8, "0")}</span>${hs}<span class="asc">${as}</span></div>`;
+  }
+  $("hex").innerHTML = h;
+}
+
+function select(a, b, scroll) {
+  S.a = a; S.b = b;
+  if (scroll) scrollRow(Math.floor(a / 16) - 2); else render();
+  info();
+}
+
+function info() {
+  if (S.a === null) return;
+  const lo = Math.min(S.a, S.b), hi = Math.max(S.a, S.b) + 1, pt = S.r.parts[S.part];
+  const stack = (S.view === "raw" ? [...regions(pt), ...fileSpans(pt, S.ann)] : [...packetsIn(pt, lo, lo + 1)].flatMap(p => partsOf(p, S.ann)))
+    .filter(x => x.start < hi && x.end > lo)
+    .sort((x, y) => ({packet: 0, mpi: 1}[x.level] ?? 2) - ({packet: 0, mpi: 1}[y.level] ?? 2) || x.start - y.start || y.end - x.end);
+  $("selinfo").textContent = `${S.r.parts[S.part].name} ${S.view} ${hx(lo)}..${hx(hi - 1)} (${hi - lo} B)`;
+  $("stack").innerHTML = stack.map(x => {
+    const v = x.value === undefined || x.value === "" ? "" : typeof x.value === "object" ? JSON.stringify(x.value) : x.value;
+    return `<div class="stk ${x.level || ""}">` + (x.user ? `<button class="x" data-del="${x.id}" title="delete">x</button>` : "") +
+      `<span class="rg mono">${hx(x.start)}+${x.end - x.start}${x.bits ? ` bit ${x.bits[0]}+${x.bits[1]}` : ""}</span>` +
+      [esc(x.name), x.type && `<span class="t">${esc(x.type)}</span>`, v !== "" && `<span class="mono">${esc(v)}</span>`].filter(Boolean).join(" · ") +
+      (x.note ? `<div class="nt">${esc(x.note)}</div>` : "") + "</div>";
+  }).join("") || "<i>nothing known here</i>";
+  const p = stack.find(x => x.kind === "pkt");
+  if (p) { S.cur = +/#(\d+)/.exec(p.name)[1]; list(); }
+  interp();
+  const c = S.ctx = context(S.r, S.view, S.part, lo);
+  if (c) c.length = hi - lo;
+  $("fctx").textContent = !c ? "selection starts in framing; not annotatable" : c.scope === "file" ? "file (absolute offset)" :
+    `packet type ${c.type}` + (c.mpi_id ? `, MPI ${c.mpi_id} ${MPI_NAMES[parseInt(c.mpi_id, 16)] || "?"} (offset from MPI payload)` : " (offset from packet payload)");
+  $("ffield").value = c?.field ?? ""; $("foff").value = c?.offset ?? ""; $("flen").value = c?.length ?? "";
+  const a = stack.find(x => x.kind === "ann");
+  if (a) $("pdt").value = DTYPES.includes(a.type.split(" ")[0]) ? a.type.split(" ")[0] : "";
+}
+
+function interp() { // values of the selected bytes (max 64), shifted left by 0-7 bits
+  if (S.a === null) return;
+  const lo = Math.min(S.a, S.b), n = Math.min(64, Math.max(S.a, S.b) + 1 - lo), sh = +$("shift").value & 7;
+  const src = buf().subarray(lo, lo + n), b = Uint8Array.from(src, (x, i) => (x << sh | (src[i + 1] ?? 0) >> (8 - sh)) & 0xFF);
+  const d = new DataView(b.buffer), r = [];
+  const f = (name, len, fn) => b.length >= len && r.push([name, fn()]);
+  if (sh) r.push(["shifted hex", Array.from(b, x => HEX[x]).join(" ")]);
+  f("u8 / i8", 1, () => `${d.getUint8(0)} / ${d.getInt8(0)}`);
+  f("u16 / i16", 2, () => `${d.getUint16(0, true)} / ${d.getInt16(0, true)} (${hx(d.getUint16(0, true), 4)})`);
+  f("u32 / i32", 4, () => `${d.getUint32(0, true)} / ${d.getInt32(0, true)} (${hx(d.getUint32(0, true), 8)})`);
+  f("u64", 8, () => d.getBigUint64(0, true).toString());
+  f("f32", 4, () => d.getFloat32(0, true));
+  f("f64", 8, () => d.getFloat64(0, true));
+  f("u16 / u32 BE", 2, () => d.getUint16(0) + (b.length >= 4 ? " / " + d.getUint32(0) : ""));
+  f("varint", 1, () => varint(b, 0, b.length)[0]);
+  f("f32 array", 8, () => Array.from({length: Math.min(8, b.length >> 2)}, (_, i) => d.getFloat32(4 * i, true).toPrecision(6)).join("  "));
+  const bin = Array.from(b.subarray(0, 8), x => x.toString(2).padStart(8, "0"));
+  r.push(["bits MSB-first", bin.join(" ")], ["bits LSB-first", bin.map(s => [...s].reverse().join("")).join(" ")],
+    ["ascii", Array.from(b, c => c >= 32 && c < 127 ? String.fromCharCode(c) : ".").join("")]);
+  $("interp").innerHTML = r.map(([a, c]) => `<tr><td>${a}</td><td>${esc(c)}</td></tr>`).join("");
+}
+
+function drawPlot() { // selection's annotation key, read in every packet of that kind, value against time
+  const c = S.ctx, cv = $("plot"), g = cv.getContext("2d");
+  if (!c || c.scope !== "packet") return $("pinfo").textContent = "select bytes inside a packet payload first";
+  const key = {...c, field: $("ffield").value, offset: $("foff").value, length: $("flen").value, bit_offset: $("fbo").value, bit_length: $("fbl").value};
+  const pts = plot(S.r, key, $("pdt").value), cats = [...new Set(pts.map(p => p[1]).filter(v => typeof v !== "number"))];
+  const y = v => typeof v === "number" ? v : typeof v === "boolean" ? +v : cats.indexOf(String(v));
+  const ys = pts.map(p => y(p[1])), t0 = Math.min(...pts.map(p => p[0])), t1 = Math.max(...pts.map(p => p[0]));
+  const y0 = Math.min(...ys), y1 = Math.max(...ys), W = cv.width = cv.clientWidth, H = cv.height = cv.clientHeight;
+  $("pinfo").textContent = pts.length ? `${pts.length} packets · min ${y0} · max ${y1} · ${new Set(pts.map(p => String(p[1]))).size} distinct` +
+    (cats.length ? ` · text: ${cats.slice(0, 6).map(c => JSON.stringify(c)).join(", ")}${cats.length > 6 ? "..." : ""}` : "") : "no packet of this kind has these bytes";
+  g.fillStyle = "#e0a040";
+  S.plot = pts.map((p, i) => [8 + (W - 16) * (p[0] - t0) / ((t1 - t0) || 1), H - 8 - (H - 16) * (ys[i] - y0) / ((y1 - y0) || 1), p[2]]);
+  for (const [px, py] of S.plot) g.fillRect(px - 1.5, py - 1.5, 3, 3);
+  g.fillStyle = "#8a919c";
+  g.fillText(String(y1), 4, 12); g.fillText(String(y0), 4, H - 16);
+  g.fillText(time(t0), 4, H - 3); g.fillText(time(t1), W - 70, H - 3);
+}
+
+function go(idx) { // show packet idx: switch to its part's stream and select it
+  const p = S.r.packets[idx];
+  S.cur = idx;
+  if (S.view !== "stream" || S.part !== p.part) setView("stream", p.part);
+  select(p.start, p.end - 1, true);
+  list();
+}
+
+function saveUser() { store(USER, JSON.stringify(S.ann.user)); S.cache.clear(); events(); render(); info(); }
+
+async function download() {
+  let sid;
+  try { sid = BigInt("0x" + $("sid").value.trim()).toString(16).padStart(16, "0"); } catch (e) { return fail("session id must be hex"); }
+  const files = [];
+  for (let n = 0; ; n++) {
+    const name = String(n).padStart(4, "0") + ".wrpl";
+    $("status").textContent = `downloading ${sid}/${name}...`;
+    let res;
+    try { res = await fetch(`https://wt-replays-cdnnow.cdn.gaijin.net/${sid}/${name}`); } catch (e) { return fail(`${name}: ${e.message}`); }
+    if (res.status === 404 || res.status === 403) break;
+    if (!res.ok) return fail(`${name}: HTTP ${res.status}`);
+    files.push([name, new Uint8Array(await res.arrayBuffer())]);
+    $("status").textContent = `${sid}: ${files.length} part(s), ${files.reduce((a, f) => a + f[1].length, 0)} B`;
+  }
+  if (!files.length) return fail(`session ${sid} not found on the replay server`);
+  await load(files);
+}
+
+const readFiles = async list => load(await Promise.all([...list].map(async f => [f.name, new Uint8Array(await f.arrayBuffer())])));
+$("files").onchange = async e => { await readFiles(e.target.files); e.target.value = ""; };
+$("dl").onclick = download;
+$("sid").onkeydown = e => e.key === "Enter" && download();
+document.querySelectorAll("input[name=view]").forEach(x => x.onchange = () => S.r && setView(x.value));
+$("part").onchange = () => setView(S.view, +$("part").value);
+$("goto").onkeydown = e => { const o = Number($("goto").value); if (e.key === "Enter" && S.r && o >= 0 && o < buf().length) select(o, o, true); };
+for (const id of ["fev", "ftype", "fmid", "hsync", "hunk"]) $(id).onchange = () => filter();
+$("grep").onkeydown = e => e.key === "Enter" && filter();
+$("pklist").onscroll = list;
+$("pklist").onclick = e => { const r = e.target.closest("[data-i]"); if (r) go(+r.dataset.i); };
+$("shift").oninput = interp;
+$("plotBtn").onclick = drawPlot;
+$("plot").onclick = e => { // jump to the nearest point's packet
+  const x = e.offsetX, y = e.offsetY, p = (S.plot || []).reduce((m, q) => Math.hypot(q[0] - x, q[1] - y) < Math.hypot(m[0] - x, m[1] - y) ? q : m, [1e9, 1e9]);
+  if (p[2] !== undefined) go(p[2]);
+};
+$("stack").onclick = e => { const id = e.target.dataset.del; if (id !== undefined && confirm("Delete this annotation?")) { S.ann.remove(+id); saveUser(); } };
+$("save").onclick = () => {
+  if (!S.ctx) return;
+  try {
+    S.ann.add({...S.ctx, field: $("ffield").value, offset: $("foff").value, length: $("flen").value, bit_offset: $("fbo").value,
+      bit_length: $("fbl").value, name: $("fname").value.trim(), dtype: $("fdtype").value.trim(), note: $("fnote").value.trim()});
+  } catch (e) { return fail(e); }
+  saveUser();
+};
+$("export").onclick = () => {
+  const items = S.ann.items.map(a => Object.fromEntries(ANN_KEYS.filter(k => a[k] !== undefined && a[k] !== null).map(k => [k, a[k]])));
+  const a = Object.assign(document.createElement("a"), {download: "annotations.json",
+    href: URL.createObjectURL(new Blob([JSON.stringify(items, null, 2) + "\n"], {type: "application/json"}))});
+  a.click();
+};
+$("import").onchange = async e => {
+  const sig = a => JSON.stringify(ANN_KEYS.map(k => a[k] ?? null)), base = new Set(S.ann.base.map(sig));
+  try { for (const a of JSON.parse(await e.target.files[0].text())) if (!base.has(sig(a))) S.ann.add(a); } catch (err) { return fail(err); }
+  saveUser();
+};
+
+$("hex").onmousedown = e => { const o = e.target.dataset.o; if (o === undefined) return;
+  if (e.shiftKey && S.a !== null) S.b = +o; else S.a = S.b = +o; S.drag = true; render(); };
+$("hex").onmouseover = e => { const o = e.target.dataset.o; if (S.drag && o !== undefined) { S.b = +o; render(); } };
+addEventListener("mouseup", () => { if (S.drag) { S.drag = false; info(); } });
+$("hex").addEventListener("wheel", e => { e.preventDefault(); if (!S.r) return;
+  const d = e.deltaMode === 1 ? e.deltaY : e.deltaY / ROWH; scrollRow(S.top + (Math.abs(d) < 1 ? Math.sign(d) : d)); }, {passive: false});
+$("vscroll").onscroll = () => { if (syncing || !S.r) return;
+  const v = $("vscroll"), range = v.scrollHeight - v.clientHeight; S.top = range > 0 ? Math.round(v.scrollTop / range * maxTop()) : 0; render(); };
+addEventListener("keydown", e => {
+  if (e.target.tagName === "INPUT" || !S.r) return;
+  const k = {PageDown: vis(), PageUp: -vis(), ArrowDown: 1, ArrowUp: -1, Home: -Infinity, End: Infinity}[e.key];
+  if (k) { e.preventDefault(); scrollRow(S.top + k); }
+});
+addEventListener("resize", () => { layout(); S.r && list(); });
+
+let depth = 0;
+addEventListener("dragenter", e => { e.preventDefault(); depth++; $("drop").style.display = "grid"; });
+addEventListener("dragleave", () => { if (--depth <= 0) { depth = 0; $("drop").style.display = "none"; } });
+addEventListener("dragover", e => e.preventDefault());
+addEventListener("drop", e => { e.preventDefault(); depth = 0; $("drop").style.display = "none"; readFiles(e.dataTransfer.files); });
+
+for (const [id, prop, axis, min] of [["hsplit", "--pkh", "y", 60], ["vsplit", "--hexw", "x", 300]]) { // resizable panels
+  const set = px => document.documentElement.style.setProperty(prop, px + "px");
+  if (+recall(prop) >= min) set(+recall(prop));
+  $(id).onmousedown = e => {
+    e.preventDefault();
+    const el = id === "hsplit" ? $("pk") : $("hexwrap"), r = el.getBoundingClientRect(), y = axis === "y";
+    const start = y ? e.clientY : e.clientX, base = y ? r.height : r.width, lim = y ? innerHeight - 160 : innerWidth - 240;
+    const move = m => { set(Math.max(min, Math.min(lim, base + (y ? m.clientY : m.clientX) - start))); layout(); S.r && list(); };
+    const up = () => { removeEventListener("mousemove", move); removeEventListener("mouseup", up);
+      const b = el.getBoundingClientRect(); store(prop, Math.round(y ? b.height : b.width)); };
+    addEventListener("mousemove", move); addEventListener("mouseup", up);
+  };
+}
+init();
+</script>
+</body>
+</html>
