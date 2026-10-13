@@ -1621,5 +1621,57 @@
     "name": "unknown_f4",
     "dtype": "f32",
     "note": "-1.0 at the start of a new aim, then rises toward 0 in about 0.1 s; meaning not known"
+  },
+  {
+    "scope": "packet",
+    "type": 4,
+    "mpi_id": "0xD047",
+    "offset": 0,
+    "length": 1,
+    "bit_offset": 0,
+    "bit_length": 4,
+    "name": "engine_count",
+    "dtype": "bits",
+    "note": "number of engines; one u16 RPM per engine follows"
+  },
+  {
+    "scope": "packet",
+    "type": 4,
+    "mpi_id": "0xD047",
+    "offset": 1,
+    "length": 2,
+    "name": "rpm_1",
+    "dtype": "u16",
+    "note": "engine RPM, steps of about 9.55 (1 rad/s); follows cockpit RPM with r = 0.97-1.00; 2000 on a stopped jet engine; every 3.1 s per aircraft in a server replay"
+  },
+  {
+    "scope": "packet",
+    "type": 4,
+    "mpi_id": "0xD047",
+    "offset": 3,
+    "length": 2,
+    "name": "rpm_2",
+    "dtype": "u16",
+    "note": "RPM of engine 2, present when engine_count >= 2"
+  },
+  {
+    "scope": "packet",
+    "type": 4,
+    "mpi_id": "0xD047",
+    "offset": 5,
+    "length": 2,
+    "name": "rpm_3",
+    "dtype": "u16",
+    "note": "RPM of engine 3, present when engine_count >= 3"
+  },
+  {
+    "scope": "packet",
+    "type": 4,
+    "mpi_id": "0xD047",
+    "offset": 7,
+    "length": 2,
+    "name": "rpm_4",
+    "dtype": "u16",
+    "note": "RPM of engine 4, present when engine_count >= 4"
   }
 ]
