@@ -90,7 +90,12 @@ F0DB sync s Shells / weapon sync|F11A sync s Shells / weapon sync|F02D sync s Re
 D136 sync s Reflection data (state sync)|F0AA sync s Reflection data (state sync)|F09A sync s Damage model HP sync
 F028 mission - Mission trigger action|F0C3 mission - Game start|F05D mission - Battle end (debriefing)
 F055 mission - Mission success / fail|F07A mission - Mission progress|F07C mission - Mission progress (time)
-F050 other - Bailout|F033 other - Repair|D046 other - Gun reload|F0DF other - Weather`.trim().split(/[|\n]/)
+F050 other - Bailout|F033 other - Repair|D046 other - Gun reload|F0DF other - Weather
+F030 spawn - Spawn position|F093 other - Aircraft state after spawn|F0D7 detect - Map marker (spotted unit)
+D041 sync s Turret target|D048 sync s Aircraft ground contact|F13A damage - Part health|F156 damage - Ship damage state
+F0BC damage - Damage model events at kill|D08E other - Explosion|F0EC mission - Hint|F07C mission - Mission countdown
+F142 detect - Target designation mark|F0F7 other - Thrown turret|F0F8 other - Thrown turret|F122 other - Terrain deformation
+F123 other - Terrain deformation`.trim().split(/[|\n]/)
   .map(e => { const [k, kind, sync, ...l] = e.split(" "); return [k, [l.join(" "), kind, sync === "s"]]; }));
 const KINDS = "spawn object kill damage hit shot detect chat award mission marker ecs other sync unknown".split(" ");
 // Detail text per event, filled from the packet's annotation values (annotations.json).

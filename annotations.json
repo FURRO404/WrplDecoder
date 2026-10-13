@@ -272,5 +272,1354 @@
     "name": "next_part",
     "dtype": "u16",
     "note": "number of the next stream part file (NNNN.wrpl)"
+  },
+  {
+    "scope": "packet",
+    "type": 6,
+    "offset": 0,
+    "length": 1,
+    "name": "ecs_packet_id",
+    "dtype": "u8",
+    "note": "0x20 entity message, 0x21 same with LZ4 body, 0x22 component replication, 0x23 same LZ4, 0x24 entity creation, 0x25 same LZ4, 0x26 destruction [verified, 77,482 packets]"
+  },
+  {
+    "scope": "packet",
+    "type": 4,
+    "mpi_id": "0xF02D",
+    "offset": 0,
+    "length": 1,
+    "name": "zstd_flag",
+    "dtype": "u8",
+    "note": "1: varint packed size, varint raw size, zstd block of reflectables; 0: reflectables follow [verified, 90,179 packets, 0.5% compressed]"
+  },
+  {
+    "scope": "packet",
+    "type": 4,
+    "mpi_id": "0xF02D",
+    "offset": 1,
+    "length": 2,
+    "name": "num_reflectables",
+    "dtype": "u16",
+    "note": "valid when zstd_flag is 0; each: u16 size, u16 object id (+varint ext uid when low 11 bits are 0x7FF), IdFieldSerializer255 of reflection vars [verified]"
+  },
+  {
+    "scope": "packet",
+    "type": 4,
+    "mpi_id": "0xF02D",
+    "offset": 3,
+    "length": 2,
+    "name": "first_size",
+    "dtype": "u16",
+    "note": "byte size of the first reflectable after this field, when zstd_flag is 0 [verified]"
+  },
+  {
+    "scope": "packet",
+    "type": 4,
+    "mpi_id": "0xF02D",
+    "offset": 5,
+    "length": 2,
+    "name": "first_object_id",
+    "dtype": "u16",
+    "note": "MPI object id of the first reflectable (type = id >> 11), when zstd_flag is 0 [verified]"
+  },
+  {
+    "scope": "packet",
+    "type": 4,
+    "mpi_id": "0xF0AA",
+    "offset": 0,
+    "length": 2,
+    "name": "num_reflectables",
+    "dtype": "u16",
+    "note": "no compression flag; same reflectable list as 0xF02D [verified, 0 walk errors]"
+  },
+  {
+    "scope": "packet",
+    "type": 4,
+    "mpi_id": "0xF0AA",
+    "offset": 2,
+    "length": 2,
+    "name": "first_size",
+    "dtype": "u16",
+    "note": "byte size of the first reflectable after this field [verified]"
+  },
+  {
+    "scope": "packet",
+    "type": 4,
+    "mpi_id": "0xF0AA",
+    "offset": 4,
+    "length": 2,
+    "name": "first_object_id",
+    "dtype": "u16",
+    "note": "MPI object id of the first reflectable (type = id >> 11) [verified]"
+  },
+  {
+    "scope": "packet",
+    "type": 4,
+    "mpi_id": "0xD136",
+    "offset": 0,
+    "length": 1,
+    "name": "zstd_flag",
+    "dtype": "u8",
+    "note": "1 in all 92 samples: varint sizes and a zstd block of reflectables; a full-state resend about every 90 s [verified]"
+  },
+  {
+    "scope": "packet",
+    "type": 4,
+    "mpi_id": "0xD041",
+    "field": 1,
+    "name": "turret_index",
+    "dtype": "u16",
+    "note": "index of the turret or sight on the aircraft, 0 to N-1; N = turret count of the aircraft [probable]"
+  },
+  {
+    "scope": "packet",
+    "type": 4,
+    "mpi_id": "0xD041",
+    "field": 2,
+    "name": "has_target",
+    "dtype": "bool",
+    "note": "1 while the turret tracks an air target; 69 of 28,060 records [probable]"
+  },
+  {
+    "scope": "packet",
+    "type": 4,
+    "mpi_id": "0xD041",
+    "field": 3,
+    "name": "target_pos",
+    "dtype": "vec3f",
+    "note": "world position of the tracked aircraft (median 30 m, behind it on its path); 0 when has_target is 0 [verified, 69 records]"
+  },
+  {
+    "scope": "packet",
+    "type": 4,
+    "mpi_id": "0xD046",
+    "field": 1,
+    "name": "weapon_group",
+    "dtype": "u16",
+    "note": "weapon kind or trigger group of the reloaded weapon; 8 on jets, 23/21/24 on tanks [probable]"
+  },
+  {
+    "scope": "packet",
+    "type": 4,
+    "mpi_id": "0xD046",
+    "field": 2,
+    "name": "weapon_index",
+    "dtype": "u16",
+    "note": "index in the group, 0 to N-1, one record each [probable]"
+  },
+  {
+    "scope": "packet",
+    "type": 4,
+    "mpi_id": "0xD048",
+    "offset": 0,
+    "length": 1,
+    "name": "contact_count",
+    "dtype": "u8",
+    "note": "count of 24-byte contact records; a varint (two bytes when 128 or more). Sent about every 0.2 s while an aircraft touches the ground [verified]"
+  },
+  {
+    "scope": "packet",
+    "type": 4,
+    "mpi_id": "0xD048",
+    "offset": 1,
+    "length": 4,
+    "name": "contact0_node",
+    "dtype": "u32",
+    "note": "first record: contact or collision point index, 2 to 70 [probable]"
+  },
+  {
+    "scope": "packet",
+    "type": 4,
+    "mpi_id": "0xD048",
+    "offset": 5,
+    "length": 4,
+    "name": "contact0_flags",
+    "dtype": "u32",
+    "note": "first record: mostly 0x80000000 or 0 [unknown]"
+  },
+  {
+    "scope": "packet",
+    "type": 4,
+    "mpi_id": "0xD048",
+    "offset": 9,
+    "length": 8,
+    "name": "contact0_depth",
+    "dtype": "f64",
+    "note": "first record: small negative value, -0.01 to -1 m; probably the penetration depth [probable]"
+  },
+  {
+    "scope": "packet",
+    "type": 4,
+    "mpi_id": "0xD048",
+    "offset": 17,
+    "length": 8,
+    "name": "contact0_shared",
+    "dtype": "f64",
+    "note": "same value in every record of the packet; follows the vertical speed loosely [unknown]"
+  },
+  {
+    "scope": "packet",
+    "type": 4,
+    "mpi_id": "0xD08E",
+    "field": 1,
+    "name": "effect_id",
+    "dtype": "u32",
+    "note": "explosion effect kind; 550, 395, 8, 9, 813, 455 seen [verified kind, meaning of ids unknown]"
+  },
+  {
+    "scope": "packet",
+    "type": 4,
+    "mpi_id": "0xD08E",
+    "field": 2,
+    "name": "pos",
+    "dtype": "vec3f",
+    "note": "world position of the explosion"
+  },
+  {
+    "scope": "packet",
+    "type": 4,
+    "mpi_id": "0xD08E",
+    "field": 3,
+    "name": "scale",
+    "dtype": "f32",
+    "note": "effect scale, 1.0 in 97% [probable]"
+  },
+  {
+    "scope": "packet",
+    "type": 4,
+    "mpi_id": "0xD08E",
+    "field": 4,
+    "name": "dir",
+    "dtype": "vec3f",
+    "note": "unit vector, direction of flight of the projectile; 0 for 3% [probable]"
+  },
+  {
+    "scope": "packet",
+    "type": 4,
+    "mpi_id": "0xF0BC",
+    "field": 1,
+    "name": "killer_uid",
+    "dtype": "uid",
+    "note": "uid of the killer; sent on the victim ground unit at the kill millisecond; equals F058 killer_uid in 188 of 188 [verified]"
+  },
+  {
+    "scope": "packet",
+    "type": 4,
+    "mpi_id": "0xF0BC",
+    "field": 2,
+    "name": "dm_events",
+    "dtype": "bytes",
+    "note": "bit stream of damage-model events of the victim, 0.7 to 3.6 kB [structure unknown]"
+  },
+  {
+    "scope": "packet",
+    "type": 4,
+    "mpi_id": "0xF0D7",
+    "field": 1,
+    "name": "pos",
+    "dtype": "vec3f",
+    "note": "world position of the marked unit; within 30 m of unit uid (field 9) in 1,061 of 1,061 [verified]"
+  },
+  {
+    "scope": "packet",
+    "type": 4,
+    "mpi_id": "0xF0D7",
+    "field": 2,
+    "name": "unit_class",
+    "dtype": "u32",
+    "note": "class bit: 0x10000 light tank, 0x20000 medium, 0x40000 heavy, 0x100000 SPAA; 0x100/0x400/0x800/0x800000 on ships [probable]"
+  },
+  {
+    "scope": "packet",
+    "type": 4,
+    "mpi_id": "0xF0D7",
+    "field": 3,
+    "name": "kind",
+    "dtype": "u8",
+    "note": "1 on ground units, 0x13/0x19 on ships [unknown]"
+  },
+  {
+    "scope": "packet",
+    "type": 4,
+    "mpi_id": "0xF0D7",
+    "field": 4,
+    "name": "icon",
+    "dtype": "u8",
+    "note": "3 on ground units, 5 on ships [unknown]"
+  },
+  {
+    "scope": "packet",
+    "type": 4,
+    "mpi_id": "0xF0D7",
+    "field": 5,
+    "name": "lifetime",
+    "dtype": "f32",
+    "note": "2.0 on ground units (re-sent every 2 s), 5.0 on ships [probable]"
+  },
+  {
+    "scope": "packet",
+    "type": 4,
+    "mpi_id": "0xF0D7",
+    "field": 6,
+    "name": "team",
+    "dtype": "u8",
+    "note": "1 or 2 [probable]"
+  },
+  {
+    "scope": "packet",
+    "type": 4,
+    "mpi_id": "0xF0D7",
+    "field": 8,
+    "name": "unk8",
+    "dtype": "u8",
+    "note": "4 on ground units, 0 on ships [unknown]"
+  },
+  {
+    "scope": "packet",
+    "type": 4,
+    "mpi_id": "0xF0D7",
+    "field": 9,
+    "name": "unit_uid",
+    "dtype": "u32",
+    "note": "uid of the marked unit, without the 0x800 ground flag [verified]"
+  },
+  {
+    "scope": "packet",
+    "type": 4,
+    "mpi_id": "0xF0D7",
+    "field": 10,
+    "name": "unk10",
+    "dtype": "i32",
+    "note": "-1 in 1,189 of 1,191 [unknown]"
+  },
+  {
+    "scope": "packet",
+    "type": 4,
+    "mpi_id": "0xF0DF",
+    "field": 1,
+    "name": "weather_target",
+    "dtype": "bytes",
+    "note": "varint size + binary DataBlock: isMoon, serverTime, clouds offsets, sunDir, moonDir, wind, sun and sky colours [verified]"
+  },
+  {
+    "scope": "packet",
+    "type": 4,
+    "mpi_id": "0xF0DF",
+    "field": 2,
+    "name": "weather_current",
+    "dtype": "bytes",
+    "note": "varint size + binary DataBlock, same keys with isAnimatedDay instead of wind [verified]"
+  },
+  {
+    "scope": "packet",
+    "type": 4,
+    "mpi_id": "0xF0DF",
+    "field": 3,
+    "name": "blend_time",
+    "dtype": "f32",
+    "note": "seconds to the target state: target serverTime - now; 90 at the 90 s resync [verified]"
+  },
+  {
+    "scope": "packet",
+    "type": 4,
+    "mpi_id": "0xF0DF",
+    "field": 4,
+    "name": "unk4",
+    "dtype": "bool",
+    "note": "always 0 [unknown]"
+  },
+  {
+    "scope": "packet",
+    "type": 4,
+    "mpi_id": "0xF0EC",
+    "field": 1,
+    "name": "hint_blk",
+    "dtype": "bytes",
+    "note": "varint size + binary DataBlock: hintType, name (e.g. hints/duel_prepare_battle), action show/hide, time, priority [verified]"
+  },
+  {
+    "scope": "packet",
+    "type": 4,
+    "mpi_id": "0xF07A",
+    "field": 1,
+    "name": "version",
+    "dtype": "u8",
+    "note": "counter, +1 on each score change [verified]"
+  },
+  {
+    "scope": "packet",
+    "type": 4,
+    "mpi_id": "0xF07A",
+    "field": 2,
+    "name": "team",
+    "dtype": "u8",
+    "note": "team the record is for, 1 or 2; one record per team [verified]"
+  },
+  {
+    "scope": "packet",
+    "type": 4,
+    "mpi_id": "0xF07A",
+    "field": 3,
+    "name": "progress",
+    "dtype": "bytes",
+    "note": "2 bytes (e0 06) + 27 f32 [partly known]"
+  },
+  {
+    "scope": "packet",
+    "type": 4,
+    "mpi_id": "0xF07A",
+    "offset": 55,
+    "length": 4,
+    "name": "own_score",
+    "dtype": "f32",
+    "note": "f32 #12: score (tickets) of this team; -1 per lost unit in team deathmatch, 0.04-1 s after the kill [verified]"
+  },
+  {
+    "scope": "packet",
+    "type": 4,
+    "mpi_id": "0xF07A",
+    "offset": 59,
+    "length": 4,
+    "name": "enemy_score",
+    "dtype": "f32",
+    "note": "f32 #13: score of the other team [verified]"
+  },
+  {
+    "scope": "packet",
+    "type": 4,
+    "mpi_id": "0xF07C",
+    "field": 1,
+    "name": "version",
+    "dtype": "u8",
+    "note": "counter, +1 per update [verified]"
+  },
+  {
+    "scope": "packet",
+    "type": 4,
+    "mpi_id": "0xF07C",
+    "offset": 4,
+    "length": 1,
+    "name": "timer_kind",
+    "dtype": "u8",
+    "note": "0x40 in all 699 records [unknown]"
+  },
+  {
+    "scope": "packet",
+    "type": 4,
+    "mpi_id": "0xF07C",
+    "offset": 5,
+    "length": 4,
+    "name": "unk",
+    "dtype": "u32",
+    "note": "0 in all records [unknown]"
+  },
+  {
+    "scope": "packet",
+    "type": 4,
+    "mpi_id": "0xF07C",
+    "offset": 9,
+    "length": 4,
+    "name": "seconds",
+    "dtype": "f32",
+    "note": "mission countdown in seconds (29, 28, 27 ... before a duel round) [probable]"
+  },
+  {
+    "scope": "packet",
+    "type": 4,
+    "mpi_id": "0xF0F8",
+    "offset": 1,
+    "length": 4,
+    "name": "tick",
+    "dtype": "u32",
+    "note": "physics tick, 24 per second (tick / 24 = battle time) [verified]"
+  },
+  {
+    "scope": "packet",
+    "type": 4,
+    "mpi_id": "0xF0F8",
+    "offset": 7,
+    "length": 8,
+    "name": "pos_x",
+    "dtype": "f64",
+    "note": "world position x [verified]"
+  },
+  {
+    "scope": "packet",
+    "type": 4,
+    "mpi_id": "0xF0F8",
+    "offset": 15,
+    "length": 8,
+    "name": "pos_y",
+    "dtype": "f64",
+    "note": "world position y (height) [verified]"
+  },
+  {
+    "scope": "packet",
+    "type": 4,
+    "mpi_id": "0xF0F8",
+    "offset": 23,
+    "length": 8,
+    "name": "pos_z",
+    "dtype": "f64",
+    "note": "world position z [verified]"
+  },
+  {
+    "scope": "packet",
+    "type": 4,
+    "mpi_id": "0xF0F8",
+    "offset": 31,
+    "length": 4,
+    "name": "quat_x",
+    "dtype": "f32",
+    "note": "orientation quaternion, |q| = 1 [verified]"
+  },
+  {
+    "scope": "packet",
+    "type": 4,
+    "mpi_id": "0xF0F8",
+    "offset": 35,
+    "length": 4,
+    "name": "quat_y",
+    "dtype": "f32",
+    "note": ""
+  },
+  {
+    "scope": "packet",
+    "type": 4,
+    "mpi_id": "0xF0F8",
+    "offset": 39,
+    "length": 4,
+    "name": "quat_z",
+    "dtype": "f32",
+    "note": ""
+  },
+  {
+    "scope": "packet",
+    "type": 4,
+    "mpi_id": "0xF0F8",
+    "offset": 43,
+    "length": 4,
+    "name": "quat_w",
+    "dtype": "f32",
+    "note": ""
+  },
+  {
+    "scope": "packet",
+    "type": 4,
+    "mpi_id": "0xF0F8",
+    "offset": 47,
+    "length": 8,
+    "name": "vel_x",
+    "dtype": "f64",
+    "note": "velocity m/s; equals the position finite difference [verified]"
+  },
+  {
+    "scope": "packet",
+    "type": 4,
+    "mpi_id": "0xF0F8",
+    "offset": 55,
+    "length": 8,
+    "name": "vel_y",
+    "dtype": "f64",
+    "note": ""
+  },
+  {
+    "scope": "packet",
+    "type": 4,
+    "mpi_id": "0xF0F8",
+    "offset": 63,
+    "length": 8,
+    "name": "vel_z",
+    "dtype": "f64",
+    "note": ""
+  },
+  {
+    "scope": "packet",
+    "type": 4,
+    "mpi_id": "0xF0F8",
+    "offset": 71,
+    "length": 4,
+    "name": "tick2",
+    "dtype": "u32",
+    "note": "same as tick [verified]"
+  },
+  {
+    "scope": "packet",
+    "type": 4,
+    "mpi_id": "0xF0F7",
+    "offset": 7,
+    "length": 4,
+    "name": "tick",
+    "dtype": "u32",
+    "note": "physics tick, 24 per second [verified]"
+  },
+  {
+    "scope": "packet",
+    "type": 4,
+    "mpi_id": "0xF0F7",
+    "offset": 11,
+    "length": 8,
+    "name": "pos_x",
+    "dtype": "f64",
+    "note": "world position x; equals the F0F8 position at rest [verified]"
+  },
+  {
+    "scope": "packet",
+    "type": 4,
+    "mpi_id": "0xF0F7",
+    "offset": 19,
+    "length": 8,
+    "name": "pos_y",
+    "dtype": "f64",
+    "note": ""
+  },
+  {
+    "scope": "packet",
+    "type": 4,
+    "mpi_id": "0xF0F7",
+    "offset": 27,
+    "length": 8,
+    "name": "pos_z",
+    "dtype": "f64",
+    "note": ""
+  },
+  {
+    "scope": "packet",
+    "type": 4,
+    "mpi_id": "0xF0F7",
+    "offset": 35,
+    "length": 16,
+    "name": "quat",
+    "dtype": "bytes",
+    "note": "4 f32 orientation quaternion [verified]; the rest of the 124 bytes is not decoded"
+  },
+  {
+    "scope": "packet",
+    "type": 4,
+    "mpi_id": "0xF142",
+    "field": 1,
+    "name": "pos",
+    "dtype": "vec3f",
+    "note": "world position of the mark; median 53 m to the nearest unit [verified]"
+  },
+  {
+    "scope": "packet",
+    "type": 4,
+    "mpi_id": "0xF142",
+    "field": 2,
+    "name": "unk2",
+    "dtype": "u32",
+    "note": "0 to 11 [unknown, maybe the marking player]"
+  },
+  {
+    "scope": "packet",
+    "type": 4,
+    "mpi_id": "0xF142",
+    "field": 3,
+    "name": "unk3",
+    "dtype": "bool",
+    "note": "always 1 [unknown]"
+  },
+  {
+    "scope": "packet",
+    "type": 4,
+    "mpi_id": "0xF156",
+    "field": 1,
+    "name": "dvm_state",
+    "dtype": "bytes",
+    "note": "bit stream: varint bit length, 0x11, one byte, then a bit set that grows as the ship takes damage [probable]"
+  },
+  {
+    "scope": "packet",
+    "type": 4,
+    "mpi_id": "0xF13A",
+    "field": 2,
+    "name": "part_index",
+    "dtype": "u16",
+    "note": "damage-model part index of the unit [probable]"
+  },
+  {
+    "scope": "packet",
+    "type": 4,
+    "mpi_id": "0xF13A",
+    "field": 3,
+    "name": "part_hp",
+    "dtype": "u8",
+    "note": "part health 0-255; falls with hits, 0 = destroyed, rises on repair [probable]"
+  },
+  {
+    "scope": "packet",
+    "type": 4,
+    "mpi_id": "0xF030",
+    "field": 1,
+    "name": "server_time",
+    "dtype": "f32",
+    "note": "battle time in seconds (packet time / 1000 within 0.04 s) [verified]"
+  },
+  {
+    "scope": "packet",
+    "type": 4,
+    "mpi_id": "0xF030",
+    "field": 2,
+    "name": "spawn_pos",
+    "dtype": "vec3f",
+    "note": "spawn position; equals the first track position (0.0 m) for 282 of 540 [verified]"
+  },
+  {
+    "scope": "packet",
+    "type": 4,
+    "mpi_id": "0xF030",
+    "field": 3,
+    "name": "spawn_rot",
+    "dtype": "bytes",
+    "note": "4 f32 quaternion, |q| = 1 [verified]"
+  },
+  {
+    "scope": "packet",
+    "type": 4,
+    "mpi_id": "0xF030",
+    "field": 4,
+    "name": "spawn_vel",
+    "dtype": "vec3f",
+    "note": "start velocity; about 180 m/s for an air spawn, 0 for a ground spawn [verified]"
+  },
+  {
+    "scope": "packet",
+    "type": 4,
+    "mpi_id": "0xF030",
+    "field": 5,
+    "name": "spawn_counters",
+    "dtype": "u8",
+    "note": "two nibbles; low nibble probably the uid generation, high the owner's spawn number [probable]"
+  },
+  {
+    "scope": "packet",
+    "type": 4,
+    "mpi_id": "0xF030",
+    "field": 6,
+    "name": "in_air",
+    "dtype": "bool",
+    "note": "1 for an aircraft spawned in flight [probable]"
+  },
+  {
+    "scope": "packet",
+    "type": 4,
+    "mpi_id": "0xF030",
+    "field": 7,
+    "name": "unk7",
+    "dtype": "bool",
+    "note": "[unknown]"
+  },
+  {
+    "scope": "packet",
+    "type": 4,
+    "mpi_id": "0xF030",
+    "field": 8,
+    "name": "spawn_base",
+    "dtype": "i32",
+    "note": "spawn point index; 8/9 for air spawns, 2-5 for ground; -1 for placeholder units [probable]"
+  },
+  {
+    "scope": "packet",
+    "type": 4,
+    "mpi_id": "0xF030",
+    "field": 9,
+    "name": "spawn_slot",
+    "dtype": "i32",
+    "note": "slot at the spawn point, 0-6; -1 for placeholder units [probable]"
+  },
+  {
+    "scope": "packet",
+    "type": 4,
+    "mpi_id": "0xF030",
+    "field": 10,
+    "name": "unk10",
+    "dtype": "u32",
+    "note": "0, or 4 for placeholder units at (0, 24.6, 0) [unknown]"
+  },
+  {
+    "scope": "packet",
+    "type": 4,
+    "mpi_id": "0xF030",
+    "field": 11,
+    "name": "unk11",
+    "dtype": "u32",
+    "note": "same as field 10 [unknown]"
+  },
+  {
+    "scope": "packet",
+    "type": 4,
+    "mpi_id": "0xF093",
+    "field": 1,
+    "name": "unit_uid",
+    "dtype": "u16",
+    "note": "uid of the aircraft [verified]"
+  },
+  {
+    "scope": "packet",
+    "type": 4,
+    "mpi_id": "0xF093",
+    "field": 2,
+    "name": "tick",
+    "dtype": "u32",
+    "note": "physics tick at 48 per second (tick / 48 = battle time) [verified]"
+  },
+  {
+    "scope": "packet",
+    "type": 4,
+    "mpi_id": "0xF093",
+    "field": 3,
+    "name": "pos",
+    "dtype": "vec3f",
+    "note": "aircraft world position [verified]"
+  },
+  {
+    "scope": "packet",
+    "type": 4,
+    "mpi_id": "0xF093",
+    "field": 4,
+    "name": "rot",
+    "dtype": "bytes",
+    "note": "4 f32 quaternion [verified]"
+  },
+  {
+    "scope": "packet",
+    "type": 4,
+    "mpi_id": "0xF093",
+    "field": 5,
+    "name": "vel",
+    "dtype": "vec3f",
+    "note": "velocity m/s [probable]"
+  },
+  {
+    "scope": "packet",
+    "type": 4,
+    "mpi_id": "0xF093",
+    "field": 6,
+    "name": "spawn_counters",
+    "dtype": "u8",
+    "note": "same nibble byte as F030 field 5 [probable]"
+  },
+  {
+    "scope": "packet",
+    "type": 4,
+    "mpi_id": "0xF093",
+    "field": 7,
+    "name": "unk7",
+    "dtype": "bool",
+    "note": "1 with field 8 when the aircraft is parked (velocity 0) [unknown]"
+  },
+  {
+    "scope": "packet",
+    "type": 4,
+    "mpi_id": "0xF093",
+    "field": 8,
+    "name": "unk8",
+    "dtype": "bool",
+    "note": "[unknown]"
+  },
+  {
+    "scope": "packet",
+    "type": 4,
+    "mpi_id": "0xF04F",
+    "field": 1,
+    "name": "unk1",
+    "dtype": "u8",
+    "note": "0, or 1 on two multi-crew aircraft [unknown]"
+  },
+  {
+    "scope": "packet",
+    "type": 4,
+    "mpi_id": "0xF04F",
+    "field": 2,
+    "name": "spawn_counters",
+    "dtype": "u8",
+    "note": "equals F030 field 5 of the aircraft [verified]"
+  },
+  {
+    "scope": "packet",
+    "type": 4,
+    "mpi_id": "0xF04F",
+    "field": 3,
+    "name": "server_time",
+    "dtype": "f32",
+    "note": "battle time in seconds [verified]"
+  },
+  {
+    "scope": "packet",
+    "type": 4,
+    "mpi_id": "0xF061",
+    "field": 1,
+    "name": "spawn_counters",
+    "dtype": "u8",
+    "note": "nibble byte like F030 field 5 [probable]"
+  },
+  {
+    "scope": "packet",
+    "type": 4,
+    "mpi_id": "0xF031",
+    "field": 1,
+    "name": "part_id",
+    "dtype": "u32",
+    "note": "damage-model part id, 0x10D0-0x1302 [probable]"
+  },
+  {
+    "scope": "packet",
+    "type": 4,
+    "mpi_id": "0xF031",
+    "field": 2,
+    "name": "seed",
+    "dtype": "u32",
+    "note": "random-looking; equal for parts that go together [unknown]"
+  },
+  {
+    "scope": "packet",
+    "type": 4,
+    "mpi_id": "0xF13E",
+    "field": 2,
+    "name": "part_id",
+    "dtype": "u32",
+    "note": "part id, same range as F031 field 1 [probable]"
+  },
+  {
+    "scope": "packet",
+    "type": 4,
+    "mpi_id": "0xF13E",
+    "field": 3,
+    "name": "value",
+    "dtype": "f32",
+    "note": "1.4 to 3.8 [unknown]"
+  },
+  {
+    "scope": "packet",
+    "type": 4,
+    "mpi_id": "0xF13E",
+    "field": 4,
+    "name": "local_pos",
+    "dtype": "vec3f",
+    "note": "small local offset, 0 for 288 of 747 [unknown]"
+  },
+  {
+    "scope": "packet",
+    "type": 4,
+    "mpi_id": "0xD044",
+    "field": 1,
+    "name": "value",
+    "dtype": "i32",
+    "note": "-1 always; sent with each 90 s weather resync [unknown]"
+  },
+  {
+    "scope": "packet",
+    "type": 4,
+    "mpi_id": "0xD079",
+    "field": 1,
+    "name": "unit_uid",
+    "dtype": "u32",
+    "note": "a unit uid (0x800 = ground); one per player at battle start [probable]"
+  },
+  {
+    "scope": "packet",
+    "type": 4,
+    "mpi_id": "0xF095",
+    "field": 1,
+    "name": "team",
+    "dtype": "u8",
+    "note": "1 or 2 (object kind 4, index 0/1) [probable]"
+  },
+  {
+    "scope": "packet",
+    "type": 4,
+    "mpi_id": "0xF095",
+    "field": 2,
+    "name": "value",
+    "dtype": "i32",
+    "note": "0 at round start, -1 at round end [probable]"
+  },
+  {
+    "scope": "packet",
+    "type": 4,
+    "mpi_id": "0xF133",
+    "offset": 3,
+    "length": 2,
+    "name": "offender_oid",
+    "dtype": "uid",
+    "note": "projectile key: uid | kind << 11 (0 aircraft, 1 ground); as read by WrplReplayParser"
+  },
+  {
+    "scope": "packet",
+    "type": 4,
+    "mpi_id": "0xF133",
+    "offset": 5,
+    "length": 1,
+    "name": "proj_generation",
+    "dtype": "u8",
+    "note": "projectile key: entity generation"
+  },
+  {
+    "scope": "packet",
+    "type": 4,
+    "mpi_id": "0xF133",
+    "offset": 6,
+    "length": 2,
+    "name": "projectile_id",
+    "dtype": "u16",
+    "note": "projectile key: projectile entity index; 0xFFFF with generation 0xFF = none"
+  },
+  {
+    "scope": "packet",
+    "type": 4,
+    "mpi_id": "0xF133",
+    "offset": 8,
+    "length": 1,
+    "name": "proj_tail",
+    "dtype": "u8",
+    "note": "projectile key: trailing byte, 0 for a real projectile"
+  },
+  {
+    "scope": "packet",
+    "type": 4,
+    "mpi_id": "0xF117",
+    "offset": 3,
+    "length": 2,
+    "name": "offender_oid",
+    "dtype": "uid",
+    "note": "projectile key: uid | kind << 11 (0 aircraft, 1 ground); as read by WrplReplayParser"
+  },
+  {
+    "scope": "packet",
+    "type": 4,
+    "mpi_id": "0xF117",
+    "offset": 5,
+    "length": 1,
+    "name": "proj_generation",
+    "dtype": "u8",
+    "note": "projectile key: entity generation"
+  },
+  {
+    "scope": "packet",
+    "type": 4,
+    "mpi_id": "0xF117",
+    "offset": 6,
+    "length": 2,
+    "name": "projectile_id",
+    "dtype": "u16",
+    "note": "projectile key: projectile entity index; 0xFFFF with generation 0xFF = none"
+  },
+  {
+    "scope": "packet",
+    "type": 4,
+    "mpi_id": "0xF117",
+    "offset": 8,
+    "length": 1,
+    "name": "proj_tail",
+    "dtype": "u8",
+    "note": "projectile key: trailing byte, 0 for a real projectile"
+  },
+  {
+    "scope": "packet",
+    "type": 4,
+    "mpi_id": "0xF133",
+    "field": 2,
+    "name": "flag2",
+    "dtype": "bool",
+    "note": "1 in 4,096 of 5,953 [unknown]"
+  },
+  {
+    "scope": "packet",
+    "type": 4,
+    "mpi_id": "0xF133",
+    "field": 3,
+    "name": "flag3",
+    "dtype": "bool",
+    "note": "1 in 123 of 5,953 [unknown]"
+  },
+  {
+    "scope": "packet",
+    "type": 4,
+    "mpi_id": "0xF133",
+    "field": 4,
+    "name": "unk4",
+    "dtype": "u32",
+    "note": "0 in all 5,953 [unknown]"
+  },
+  {
+    "scope": "packet",
+    "type": 4,
+    "mpi_id": "0xF117",
+    "field": 2,
+    "name": "damage_class",
+    "dtype": "u8",
+    "note": "as read by WrplReplayParser; 0x01, 0x11, 0x51, 0x41 most common"
+  },
+  {
+    "scope": "packet",
+    "type": 4,
+    "mpi_id": "0xF117",
+    "field": 3,
+    "name": "amount",
+    "dtype": "f32",
+    "note": "damage amount, as read by WrplReplayParser"
+  },
+  {
+    "scope": "packet",
+    "type": 4,
+    "mpi_id": "0xF144",
+    "field": 1,
+    "name": "dir_b0",
+    "dtype": "u8",
+    "note": "packed world direction byte 0 (netutils::unpack_dir), as read by WrplReplayParser"
+  },
+  {
+    "scope": "packet",
+    "type": 4,
+    "mpi_id": "0xF144",
+    "field": 2,
+    "name": "dir_b1",
+    "dtype": "u8",
+    "note": "packed world direction byte 1"
+  },
+  {
+    "scope": "packet",
+    "type": 4,
+    "mpi_id": "0xF144",
+    "field": 3,
+    "name": "dir_b2",
+    "dtype": "u8",
+    "note": "packed world direction byte 2"
+  },
+  {
+    "scope": "packet",
+    "type": 4,
+    "mpi_id": "0xF144",
+    "field": 4,
+    "name": "unk4",
+    "dtype": "u8",
+    "note": "0x00/0x01/0x20/0x21/0x30 most common; bit flags [unknown]"
+  },
+  {
+    "scope": "packet",
+    "type": 4,
+    "mpi_id": "0xF0E9",
+    "offset": 3,
+    "length": 2,
+    "name": "body_bits",
+    "dtype": "varint",
+    "note": "bit length of the hit body (275-291), 2 bytes in all 8,985"
+  },
+  {
+    "scope": "packet",
+    "type": 4,
+    "mpi_id": "0xF0E9",
+    "offset": 5,
+    "length": 2,
+    "name": "offender_oid",
+    "dtype": "uid",
+    "note": "projectile key, as read by WrplReplayParser"
+  },
+  {
+    "scope": "packet",
+    "type": 4,
+    "mpi_id": "0xF0E9",
+    "offset": 7,
+    "length": 1,
+    "name": "proj_generation",
+    "dtype": "u8",
+    "note": "projectile key"
+  },
+  {
+    "scope": "packet",
+    "type": 4,
+    "mpi_id": "0xF0E9",
+    "offset": 8,
+    "length": 2,
+    "name": "projectile_id",
+    "dtype": "u16",
+    "note": "projectile key"
+  },
+  {
+    "scope": "packet",
+    "type": 4,
+    "mpi_id": "0xF0E9",
+    "offset": 10,
+    "length": 1,
+    "name": "proj_tail",
+    "dtype": "u8",
+    "note": "projectile key"
+  },
+  {
+    "scope": "packet",
+    "type": 4,
+    "mpi_id": "0xF0BD",
+    "field": 1,
+    "name": "barrel",
+    "dtype": "u8",
+    "note": "as read by WrplReplayParser"
+  },
+  {
+    "scope": "packet",
+    "type": 4,
+    "mpi_id": "0xF0BD",
+    "field": 2,
+    "name": "slot",
+    "dtype": "u8",
+    "note": "ammo slot, as read by WrplReplayParser"
+  },
+  {
+    "scope": "packet",
+    "type": 4,
+    "mpi_id": "0xF0BD",
+    "field": 3,
+    "name": "rounds_left",
+    "dtype": "u32",
+    "note": "as read by WrplReplayParser"
+  },
+  {
+    "scope": "packet",
+    "type": 4,
+    "mpi_id": "0xF074",
+    "offset": 0,
+    "length": 2,
+    "name": "sync_bits",
+    "dtype": "varint",
+    "note": "Size in bits of the sync that follows (byte-aligned after it). Always 2 bytes in 187,012 packets of 20 battles [verified]"
+  },
+  {
+    "scope": "packet",
+    "type": 4,
+    "mpi_id": "0xF074",
+    "offset": 2,
+    "length": 2,
+    "name": "first_uid",
+    "dtype": "u16",
+    "note": "First unit uid of the range that this sync covers [verified]"
+  },
+  {
+    "scope": "packet",
+    "type": 4,
+    "mpi_id": "0xF074",
+    "offset": 4,
+    "length": 2,
+    "name": "end_uid",
+    "dtype": "u16",
+    "note": "End of the uid range (exclusive). One record bit per uid in [first_uid, end_uid) [verified]"
+  },
+  {
+    "scope": "packet",
+    "type": 4,
+    "mpi_id": "0xF074",
+    "offset": 6,
+    "length": 4,
+    "name": "server_time_s",
+    "dtype": "f32",
+    "note": "Server time in seconds, 0 to 1 ms after the packet time (56,463 syncs) [verified]"
+  },
+  {
+    "scope": "packet",
+    "type": 4,
+    "mpi_id": "0xF074",
+    "offset": 10,
+    "length": 2,
+    "name": "reliability_order",
+    "dtype": "u16",
+    "note": "Always 0 in 56,463 syncs; meaning not known"
+  },
+  {
+    "scope": "packet",
+    "type": 4,
+    "mpi_id": "0xF0CC",
+    "field": 1,
+    "name": "camera_quat",
+    "dtype": "f32",
+    "note": "Camera rotation quaternion x,y,z,w (16 bytes; only x shows). View direction = quat applied to (0,0,1): in the gunner sight it is 0.26 deg (median) from the gun direction [verified]"
+  },
+  {
+    "scope": "packet",
+    "type": 4,
+    "mpi_id": "0xF0CC",
+    "field": 2,
+    "name": "camera_offset",
+    "dtype": "vec3f",
+    "note": "Camera position minus vehicle position, world axes, m. About 9 m in third person, about 2.2 m in the gunner sight [verified]"
+  },
+  {
+    "scope": "packet",
+    "type": 4,
+    "mpi_id": "0xF0CC",
+    "field": 3,
+    "name": "gun_dir",
+    "dtype": "vec3f",
+    "note": "Unit vector of the gun barrel in world axes. Its yaw minus the hull heading equals the turret yaw of the ground sync (median 0.31 deg, n=24,689) [verified]"
+  },
+  {
+    "scope": "packet",
+    "type": 4,
+    "mpi_id": "0xF0CC",
+    "field": 4,
+    "name": "camera_mode",
+    "dtype": "u16",
+    "note": "Camera kind: 29 third person (zoom 1.19, offset 9 m), 39 gunner sight (offset 2.2 m, zoom to 25), 35 fixed 9.28x sight, 0/42/46 other views [probable]"
+  },
+  {
+    "scope": "packet",
+    "type": 4,
+    "mpi_id": "0xF0CC",
+    "field": 5,
+    "name": "zoom",
+    "dtype": "f32",
+    "note": "Camera zoom factor: 1.192 normal view, 5 to 25 in sights [verified]"
+  },
+  {
+    "scope": "packet",
+    "type": 4,
+    "mpi_id": "0xF0CC",
+    "field": 6,
+    "name": "tracking_weapon",
+    "dtype": "bool",
+    "note": "1 when the camera follows a launched weapon (4 of 30,565 messages) [probable]"
+  },
+  {
+    "scope": "packet",
+    "type": 4,
+    "mpi_id": "0xF0CC",
+    "field": 7,
+    "name": "weapon_ref",
+    "dtype": "u16",
+    "note": "1 normally; another value while tracking_weapon is 1 [probable]"
+  },
+  {
+    "scope": "packet",
+    "type": 4,
+    "mpi_id": "0xD020",
+    "field": 1,
+    "name": "weapon_index",
+    "dtype": "u32",
+    "note": "Index of the gun mount that an AI gunner aims (0 for an AI flak gun, 1 to 19 on ships) [probable]"
+  },
+  {
+    "scope": "packet",
+    "type": 4,
+    "mpi_id": "0xD020",
+    "field": 2,
+    "name": "yaw_deg",
+    "dtype": "f32",
+    "note": "Mount yaw in degrees relative to the hull. Equal (0.00 deg) to the next turret yaw in the ground sync, n=2,235 [verified]"
+  },
+  {
+    "scope": "packet",
+    "type": 4,
+    "mpi_id": "0xD020",
+    "field": 3,
+    "name": "pitch_deg",
+    "dtype": "f32",
+    "note": "Mount elevation in degrees. Equal (0.00 deg) to the next turret pitch in the ground sync, n=2,235 [verified]"
+  },
+  {
+    "scope": "packet",
+    "type": 4,
+    "mpi_id": "0xD020",
+    "field": 4,
+    "name": "unknown_f4",
+    "dtype": "f32",
+    "note": "-1.0 at the start of a new aim, then rises toward 0 in about 0.1 s; meaning not known"
   }
 ]
