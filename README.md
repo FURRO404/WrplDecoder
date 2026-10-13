@@ -2,7 +2,7 @@
 
 A hex viewer for War Thunder replay files (`.wrpl`) that runs in the browser: **https://furro404.github.io/WrplDecoder/**
 
-Open a replay (or all parts of a server replay, or download one by session id) and click any byte to see what it is: header field, packet framing, MPI message, field, or a known value. Bytes with no known meaning stay plain. When you work out what a range means, save it as an annotation; it then applies to every packet of that kind. The shared annotations live in `annotations.json`; export yours and open a pull request to add them.
+Open a replay (or all parts of a server replay, or download one by session id) and click any byte to see what it is: header field, packet framing, MPI message, field, or a known value. Some variable structures are decoded record by record: ground vehicle sync 0xF074 (with the delta-compressed vehicle state: position, velocity, turret angles, tracks, ammo), store sync 0xF11A, aircraft ground contacts 0xD048, binary DataBlocks in 0xF0DF and 0xF0EC, terraform 0xF122/0xF123, reflection data 0xF02D/0xF0AA/0xD136, and the ECS message class names of packet type 6. Bytes with no known meaning stay plain. When you work out what a range means, save it as an annotation; it then applies to every packet of that kind. The shared annotations live in `annotations.json`; export yours and open a pull request to add them.
 
 Files stay in your browser. To run it locally: `python3 -m http.server`, then open http://localhost:8000/.
 

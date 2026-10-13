@@ -48,7 +48,7 @@ button:hover { border-color: #5a6170; cursor: pointer; }
 #hex .ps { box-shadow: inset 2px 0 0 var(--pstart); }
 #hex .s { background: var(--sel) !important; color: #fff; }
 .prefix { background: #5b3a3a; } .ptype { background: #6b4a1f; } .ts { background: #3d4f2a; } .mpihdr { background: #2a4560; }
-.ann { background: #4b3462; } .hdr { background: #2f4a48; } .blk { background: #3a3a52; } .idf { background: #2a3a4a; } .fld { background: #2b2f36; }
+.ann { background: #4b3462; } .dec { background: #283f36; } .hdr { background: #2f4a48; } .blk { background: #3a3a52; } .idf { background: #2a3a4a; } .fld { background: #2b2f36; }
 #legend { margin-left: auto; }
 #legend span { padding: 0 5px; border-radius: 2px; }
 #vscroll { overflow-y: scroll; width: 16px; }
@@ -56,6 +56,7 @@ button:hover { border-color: #5a6170; cursor: pointer; }
 #side h3 { margin: 12px 0 4px; font-size: 13px; color: var(--dim); text-transform: uppercase; letter-spacing: .05em; }
 .stk { border-left: 3px solid #9b6fd0; padding: 3px 8px; margin: 3px 0; }
 .stk.packet { border-color: var(--pstart); font-weight: 600; } .stk.mpi { border-color: #4a8fd6; font-weight: 600; }
+.stk.val { border-color: #4f9a7a; white-space: pre-wrap; }
 .stk .t, .stk .rg, .stk .nt { color: var(--dim); }
 .stk .rg { float: right; margin-left: 8px; }
 .stk .nt { font-style: italic; }
@@ -88,7 +89,7 @@ td:first-child { color: var(--dim); white-space: nowrap; }
     <span id="count"></span>
     <span id="legend"><span class="prefix">size</span> <span class="ptype">type</span> <span class="ts">time</span>
       <span class="mpihdr">MPI hdr</span> <span class="idf">field table</span> <span class="fld">field</span>
-      <span class="ann">annotation</span> <span class="hdr">header</span> <span class="blk">BLK</span> plain = unknown</span>
+      <span class="dec">decoded</span> <span class="ann">annotation</span> <span class="hdr">header</span> <span class="blk">BLK</span> plain = unknown</span>
   </div>
   <div id="pklist" class="mono"></div>
 </div>
@@ -168,7 +169,7 @@ async function load(files) {
 function events() { // per packet: [event label, kind, sync, detail]
   S.rows = S.r.packets.map(p => event(p, S.ann));
   const c = coverage(S.r, S.ann);
-  $("coverage").innerHTML = `known <b>${c.known}%</b> (framing ${c.frame} B, annotated ${c.annotated} B = ${c.payload}% of payload)`;
+  $("coverage").innerHTML = `known <b>${c.known}%</b> (framing ${c.frame} B, decoded or annotated ${c.annotated} B = ${c.payload}% of payload)`;
   const count = f => S.r.packets.reduce((m, p, i) => (m[f(p, i)] = (m[f(p, i)] || 0) + 1, m), {});
   const opts = (el, all, m, label, sort) => {
     const v = el.value;
@@ -239,7 +240,7 @@ function scrollRow(r) {
 function chunk(ci) { // byte classes of one 4 KB chunk: known kind per byte, packet starts
   if (S.cache.has(ci)) return S.cache.get(ci);
   const s = ci * CHUNK, e = s + CHUNK, kind = new Array(CHUNK).fill(""), ps = new Uint8Array(CHUNK), pt = S.r.parts[S.part];
-  const known = ["prefix", "ptype", "ts", "mpihdr", "idf", "fld", "hdr", "blk", "ann"];
+  const known = ["prefix", "ptype", "ts", "mpihdr", "idf", "fld", "dec", "hdr", "blk", "ann"];
   const spans = S.view === "raw" ? [...regions(pt), ...fileSpans(pt, S.ann)] :
     [...packetsIn(pt, s, e)].flatMap(p => { if (p.start >= s) ps[p.start - s] = 1; return partsOf(p, S.ann); });
   for (const x of spans) if (known.includes(x.kind))
@@ -278,7 +279,7 @@ function info() {
   const lo = Math.min(S.a, S.b), hi = Math.max(S.a, S.b) + 1, pt = S.r.parts[S.part];
   const stack = (S.view === "raw" ? [...regions(pt), ...fileSpans(pt, S.ann)] : [...packetsIn(pt, lo, lo + 1)].flatMap(p => partsOf(p, S.ann)))
     .filter(x => x.start < hi && x.end > lo)
-    .sort((x, y) => ({packet: 0, mpi: 1}[x.level] ?? 2) - ({packet: 0, mpi: 1}[y.level] ?? 2) || x.start - y.start || y.end - x.end);
+    .sort((x, y) => ({packet: 0, mpi: 1, val: 3}[x.level] ?? 2) - ({packet: 0, mpi: 1, val: 3}[y.level] ?? 2) || x.start - y.start || y.end - x.end);
   $("selinfo").textContent = `${S.r.parts[S.part].name} ${S.view} ${hx(lo)}..${hx(hi - 1)} (${hi - lo} B)`;
   $("stack").innerHTML = stack.map(x => {
     const v = x.value === undefined || x.value === "" ? "" : typeof x.value === "object" ? JSON.stringify(x.value) : x.value;
