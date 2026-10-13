@@ -370,12 +370,12 @@ async function download() {
 const readFiles = async list => load(await Promise.all([...list].map(async f => [f.name, new Uint8Array(await f.arrayBuffer())])));
 $("files").onchange = async e => { await readFiles(e.target.files); e.target.value = ""; };
 $("dl").onclick = download;
-$("sid").onkeydown = e => e.key === "Enter" && download();
+$("sid").onkeydown = e => { if (e.key === "Enter") download(); };
 document.querySelectorAll("input[name=view]").forEach(x => x.onchange = () => S.r && setView(x.value));
 $("part").onchange = () => setView(S.view, +$("part").value);
 $("goto").onkeydown = e => { const o = Number($("goto").value); if (e.key === "Enter" && S.r && o >= 0 && o < buf().length) select(o, o, true); };
 for (const id of ["fev", "ftype", "fmid", "hsync", "hunk"]) $(id).onchange = () => filter();
-$("grep").onkeydown = e => e.key === "Enter" && filter();
+$("grep").onkeydown = e => { if (e.key === "Enter") filter(); };
 $("pklist").onscroll = list;
 $("pklist").onclick = e => { const r = e.target.closest("[data-i]"); if (r) go(+r.dataset.i); };
 $("shift").oninput = interp;
