@@ -484,18 +484,20 @@ function gmState(bytes, floatRot, nw) {
         put("steer throttle", [r3(steer / 127), r3(thr / 127)]);
       }
       put("engine", d.u8());
-      if (d.bit()) { // ship: the rest of a ship's state is not known
-        put("ship s0..s5 (s3 s4 propulsion, s5 rudder)", fixed(6, "u8")(d));
+      if (d.bit()) { // ship block; a ship then sends no flag_b6 / alive bit
+        const s = fixed(6, "u8")(d);
+        put("ship water levels s0..s2 (probable)", s.slice(0, 3));
+        put("ship throttle (127 stop, 254 full ahead)", s[3]);
+        put("ship rudder (127 centre)", s[5]);
         if (d.bit()) put("ship b", fixed(2, "u8")(d));
-        put("ship c", d.bit());
+        put("ship flooding (probable)", d.bit());
         const w = fixed(4, "u8")(d);
-        put("ship w", w.slice(0, 3));
-        put("ship list", fixed(w[3], "u8")(d));
-        put("(ship state continues, not known)", `${bytes.length * 8 - d.p} bits`);
-        return L;
+        put("ship w0..w2", w.slice(0, 3));
+        put("ship shaft health (one per transmission part)", fixed(w[3], "u8")(d));
+      } else {
+        put("flag_b6", d.bit());
+        put("alive", d.bit());
       }
-      put("flag_b6", d.bit());
-      put("alive", d.bit());
       if (d.bit()) put("block b8", [d.u8(), fixed(7, "bit")(d).join(""), d.u8(), d.u8(), d.low(5), d.low(4), d.low(4), d.low(2), d.low(3), d.low(4)]);
       if (d.bit()) {
         const n = d.u8();
