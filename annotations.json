@@ -934,9 +934,9 @@
     "type": 4,
     "mpi_id": "0xF13A",
     "field": 2,
-    "name": "part_index",
+    "name": "part_local_id",
     "dtype": "u16",
-    "note": "damage-model part index of the unit [probable]"
+    "note": "local damage-model part id of the unit: index of the DamageParts leaves of the unit BLK that the model has; the global part name comes from config/damagemodelparts.blk. Sent when that part is killed [verified 12/12 on tanks]"
   },
   {
     "scope": "packet",
