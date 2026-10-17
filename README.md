@@ -6,6 +6,10 @@ Open a replay (or all parts of a server replay, or download one by session id) a
 
 Files stay in your browser. To run it locally: `python3 -m http.server`, then open http://localhost:8000/.
 
+## Known caveats
+
+- 0xD047 (engine RPM) is annotated, not decoded. The `engine_count` and `rpm_N` annotations read a fixed u16 per engine starting at byte 1, which assumes the nested-stream length prefix is one byte. That prefix is a varint bit count, so it becomes two bytes at 8 or more engines and every `rpm_N` offset then shifts by one. Decoding the count from the prefix is left for later.
+
 Similar to [wrpl-inspector](https://github.com/maxsupermanhd/wrpl-inspector) by maxsupermanhd, a Go library and desktop GUI for the same format. WrplDecoder is smaller and focused on finding and recording what unknown bytes mean. These features follow wrpl-inspector's ideas:
 
 - download a server replay by session id, and open all its parts as one replay

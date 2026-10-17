@@ -155,7 +155,7 @@ function read(dt, b, bp, n) {
   if (dt === "bool") return !!bits(b, bp, n);
   if (["u8", "u16", "u32", "u64", "bits"].includes(dt)) return bits(b, bp, n);
   if (/^i\d/.test(dt)) { const v = BigInt(bits(b, bp, n)); return v >> BigInt(n - 1) ? v - (1n << BigInt(n)) : v; }
-  if (dt === "uid") return "0x" + hex4(bits(b, bp, 16));
+  if (dt === "uid") return "0x" + hex4(bits(b, bp, n));
   if (dt === "f32" || dt === "f64" || dt === "vec3f") {
     const d = new DataView(raw(b, bp, n / 8).slice().buffer), f = dt === "f64" ? [d.getFloat64(0, true)] :
       Array.from({length: n / 32}, (_, i) => d.getFloat32(4 * i, true)), r = f.map(x => +x.toPrecision(7));
@@ -456,69 +456,131 @@ function gmPass(r) {
   for (const p of r.packets) if (p.mid === 0xF074) {
     const d = new Bits(p.b, p.mpay, p.end), st = p.gm = [];
     d.delta = (uid, full, back, next, data) => st.push(applyDelta(hist, uid, full, back, next, data));
+    d.gmRaw = (uid, bytes) => st.push(bytes); // an uncompressed state, kept so the k-th state lines up
     try { gmSync(p, d); } catch (e) { /* the rest of this packet is lost; later bases may be missing */ }
   }
 }
 
 // GroundModel state (ParseVehicleInfo) from the delta-decoded bytes: [[name, value]].
 function gmState(bytes, floatRot, nw) {
-  const d = new Bits(bytes, 0, bytes.length), L = [], put = (n, v) => L.push([n, v]);
+  const d = new Bits(bytes, 0, bytes.length), L = [];
+  try { vehicleState(d, floatRot, nw, (n, v) => L.push([n, v])); }
+  catch (e) { L.push(["(state ends early)", e.message]); }
+  return L;
+}
+
+// SensorsControlStates::deserialize (SensorStates.h). Reads one sensor record, returns a short label.
+function sensorState(d) {
+  const on = d.bit(), sb = d.u8(), kind = sb >> 4, slot = sb & 15;
+  const parts = [`kind ${kind}, slot ${slot}, on ${on}`];
+  if (kind === 1) {
+    const has = d.bit();
+    if (!has) return parts.concat("no state").join("; ");
+    const p = d.i16();
+    parts.push(`transceiver ${p & 15}, scan pattern ${p >> 4 & 63}, signal ${p >> 10 & 15}`, `mode_time ${r3(d.f32())} s`);
+    d.i16(); d.i16(); d.i16(); // packed scan az/el and one more (unpacked values not shown)
+    if (p < 0) d.u8();
+    if (d.bit()) { const b = d.u8(); parts.push(`unknown ${b & 1}, ${b >> 1 & 3}, ${b >> 3 & 3}`); }
+  } else if (kind === 2) {
+    if (!on) return parts.join("; ");
+    d.bit();
+    d.i16(); d.f32(); d.f32(); d.f32(); d.f32(); d.low(32); d.i32(); d.f32();
+  } else if (kind === 4) {
+    const has = d.bit();
+    parts.push(`has_state ${has}`);
+    if (has) { d.f32(); d.f32(); d.f32(); }
+  } else {
+    throw new Error("sensor layout " + kind + " not read");
+  }
+  if (d.bit()) { // the contacts the sensor holds
+    const c = d.low(6);
+    for (let i = 0; i < c; i++) d.u32();
+    d.low(6);
+  }
+  return parts.join("; ");
+}
+
+// TargetDesignationControlState::deserialize (SensorStates.h).
+function designationState(d) {
+  d.u8(); d.u8();
+  if (d.bit()) d.vec3();
+  if (d.bit()) { d.vec3(); d.i16(); d.i16(); d.i16(); } // field 6, then field 9 as three packed int16
+  else { d.vec3(); d.vec3(); }                          // fields 7 and 9
+  d.f32(); d.bit(); d.bit();
+  if (d.bit()) d.u8();
+  d.bit();
+  const h14 = d.bit();
+  d.bit();
+  if (h14) d.u8();
+  if (d.bit()) d.u32();
+}
+
+// ParseVehicleInfo of one ground vehicle, read from d at its current (byte-aligned) position.
+// put(name, value) takes each field. The whole state is read, so d ends exactly after it — an
+// uncompressed GMSync record has no length prefix and needs that to find its remaining fields.
+function vehicleState(d, floatRot, nw, put) {
   const packed = () => {
     const a = d.u32(), b = d.u32(), c = v => Math.max(-1, Math.min(1, v * 4.7683727e-7 - 1)) * 36000;
     return [c(a >>> 10), ((a & 0x3FF) << 10 | b >>> 22) * 0.007629402 - 100, c(b & 0x3FFFFF)];
   };
-  try {
-    put("spawn_counter", d.u8());
-    const motion = d.bit();
-    put("has_motion", motion);
-    if (motion) {
-      if (floatRot) { put("quat", fixed(4, "f32")(d).map(r3)); if (d.bit()) d.skip(8 * 84); }
-      else put("heading pitch roll deg", [d.i16() / 32767 * 180, d.i16() / 32767 * 90, d.i16() / 32767 * 180].map(r3));
-      put("awake", d.bit());
-      put("position", (d.bit() ? d.vec3() : packed()).map(r3));
-      put("velocity m/s", (floatRot ? d.vec3() : fixed(3, "i16")(d).map(x => x / 32767 * 100)).map(r3));
-      put("angular velocity deg/s (roll yaw pitch)", fixed(3, "i8")(d).map(x => deg(x / 127 * Math.PI)));
-      if (d.bit()) {
-        const [l, rt, steer, thr] = fixed(4, "i8")(d);
-        put("tracks m/s (left right)", [r3(l * 0.1266), r3(rt * 0.1266)]);
-        put("steer throttle", [r3(steer / 127), r3(thr / 127)]);
-      }
-      put("engine", d.u8());
-      if (d.bit()) { // ship block; a ship then sends no flag_b6 / alive bit
-        const s = fixed(6, "u8")(d);
-        put("ship water levels s0..s2 (probable)", s.slice(0, 3));
-        put("ship throttle (127 stop, 254 full ahead)", s[3]);
-        put("ship rudder (127 centre)", s[5]);
-        if (d.bit()) put("ship b", fixed(2, "u8")(d));
-        put("ship flooding (probable)", d.bit());
-        const w = fixed(4, "u8")(d);
-        put("ship w0..w2", w.slice(0, 3));
-        put("ship shaft health (one per transmission part)", fixed(w[3], "u8")(d));
-      } else {
-        put("flag_b6", d.bit());
-        put("alive", d.bit());
-      }
-      if (d.bit()) put("block b8", [d.u8(), fixed(7, "bit")(d).join(""), d.u8(), d.u8(), d.low(5), d.low(4), d.low(4), d.low(2), d.low(3), d.low(4)]);
-      if (d.bit()) {
-        const n = d.u8();
-        for (let i = 0; i < n; i++) put(`sub vehicle ${i} (euler i16, rates, pos)`, [fixed(3, "i16")(d), fixed(3, "i8")(d), d.vec3().map(r3)]);
-      }
+  put("spawn_counter", d.u8());
+  const motion = d.bit();
+  put("has_motion", motion);
+  if (motion) {
+    if (floatRot) { put("quat", fixed(4, "f32")(d).map(r3)); if (d.bit()) d.skip(8 * 84); }
+    else put("heading pitch roll deg", [d.i16() / 32767 * 180, d.i16() / 32767 * 90, d.i16() / 32767 * 180].map(r3));
+    put("awake", d.bit());
+    put("position", (d.bit() ? d.vec3() : packed()).map(r3));
+    put("velocity m/s", (floatRot ? d.vec3() : fixed(3, "i16")(d).map(x => x / 32767 * 100)).map(r3));
+    put("angular velocity deg/s (roll yaw pitch)", fixed(3, "i8")(d).map(x => deg(x / 127 * Math.PI)));
+    if (d.bit()) {
+      const [l, rt, steer, thr] = fixed(4, "i8")(d);
+      put("tracks m/s (left right)", [r3(l * 0.1266), r3(rt * 0.1266)]);
+      put("steer throttle", [r3(steer / 127), r3(thr / 127)]);
     }
-    const angles = d.bit();
-    put("player_controlled", d.bit());
-    for (let i = 0; i < nw; i++) {
-      const w = [`broken ${d.bit()}`, `u8 ${d.u8()}`];
-      if (d.bit()) w.push(`heat ${d.u8()}`);
-      w.push(`aim ${d.bit()}${d.bit()}`);
-      if (angles && d.bit()) {
-        w.push(`yaw ${r3(d.i16() / 32767 * 180)} pitch ${r3(d.i16() / 32767 * 180)} deg`, `coarse ${d.u8()} ${d.u8()}`);
-        if (d.bit()) w.push(`third ${d.i16()}`);
-      }
-      put(`weapon ${i}`, w.join(", "));
+    put("engine", d.u8());
+    if (d.bit()) { // ship block; a ship then sends no flag_b6 / alive bit
+      const s = fixed(6, "u8")(d);
+      put("ship water levels s0..s2 (probable)", s.slice(0, 3));
+      put("ship throttle (127 stop, 254 full ahead)", s[3]);
+      put("ship rudder (127 centre)", s[5]);
+      if (d.bit()) put("ship b", fixed(2, "u8")(d));
+      put("ship flooding (probable)", d.bit());
+      const w = fixed(4, "u8")(d);
+      put("ship w0..w2", w.slice(0, 3));
+      put("ship shaft health (one per transmission part)", fixed(w[3], "u8")(d));
+    } else {
+      put("flag_b6", d.bit());
+      put("alive", d.bit());
     }
-    put("sensor_count", d.u8());
-  } catch (e) { put("(state ends early)", e.message); }
-  return L;
+    if (d.bit()) put("block b8", [d.u8(), fixed(7, "bit")(d).join(""), d.u8(), d.u8(), d.low(5), d.low(4), d.low(4), d.low(2), d.low(3), d.low(4)]);
+    if (d.bit()) {
+      const n = d.u8();
+      for (let i = 0; i < n; i++) put(`sub vehicle ${i} (euler i16, rates, pos)`, [fixed(3, "i16")(d), fixed(3, "i8")(d), d.vec3().map(r3)]);
+    }
+  }
+  const angles = d.bit();
+  put("player_controlled", d.bit());
+  for (let i = 0; i < nw; i++) {
+    const w = [`broken ${d.bit()}`, `u8 ${d.u8()}`];
+    if (d.bit()) w.push(`heat ${d.u8()}`);
+    w.push(`aim ${d.bit()}${d.bit()}`);
+    if (angles && d.bit()) {
+      w.push(`yaw ${r3(d.i16() / 32767 * 180)} pitch ${r3(d.i16() / 32767 * 180)} deg`, `coarse ${d.u8()} ${d.u8()}`);
+      if (d.bit()) w.push(`third ${d.i16()}`);
+    }
+    put(`weapon ${i}`, w.join(", "));
+  }
+  const sensorsCount = d.u8();
+  put("sensor_count", sensorsCount);
+  for (let i = 0; i < sensorsCount; i++) put(`sensor ${i}`, sensorState(d));
+  if (sensorsCount > 0) put("sensor list tail", d.u8());
+  const cmCount = d.u8();
+  put("countermeasures", cmCount);
+  for (let i = 0; i < cmCount; i++) { d.u8(); d.u8(); }
+  const targetsNum = d.low(4);
+  put("targets", targetsNum);
+  for (let i = 0; i < targetsNum; i++) designationState(d);
 }
 
 // 0xF074 GroundModelPositionsServerReplay: varint bit size, then per uid in [first, end) a record.
@@ -541,11 +603,24 @@ function gmSync(p, d) {
     if (!(a && b)) {
       d.v("g5", "bit");
       const fr = d.v("float_rotation", "bit"), nw = d.v("weapon_count", "u8");
-      if (!d.v("delta_compressed", "bit")) throw new Error("uncompressed GM state (not seen before)");
-      const full = d.v("delta full_diff", "bit"), back = d.v("delta base_back", x => x.low(5));
-      const next = d.v("delta packet_no", x => x.bits(13)), size = d.v("delta size", "varint");
-      const ds = d.p, data = d.v("delta data", x => x.bytes(size), x => `${x.length} B ` + (full ? "full state" : "rle0ki XOR patch"));
-      if (d.delta) d.delta(uid, full, back, next, data);
+      const compressed = d.v("delta_compressed", "bit");
+      let ds = null, stateFields = null;
+      if (compressed) {
+        const full = d.v("delta full_diff", "bit"), back = d.v("delta base_back", x => x.low(5));
+        const next = d.v("delta packet_no", x => x.bits(13)), size = d.v("delta size", "varint");
+        ds = d.p;
+        const data = d.v("delta data", x => x.bytes(size), x => `${x.length} B ` + (full ? "full state" : "rle0ki XOR patch"));
+        if (d.delta) d.delta(uid, full, back, next, data);
+      } else {
+        // Uncompressed state: byte-aligned and without a length prefix, so it must be read to find
+        // its end. The rest of the record follows it; a short state fails the packet, as in the parser.
+        d.align();
+        ds = d.p;
+        if (d.out) d.pre = `uid ${uid} `;
+        stateFields = [];
+        vehicleState(d, fr, nw, (n, v) => stateFields.push([n, v]));
+        if (d.delta) d.gmRaw(uid, d.b.subarray(ds >> 3, (d.p + 7) >> 3));
+      }
       if (d.v("has_aim", "bit")) {
         d.v("aim yaw (minus, deg)", "f32"); d.v("aim pitch deg", "f32"); d.v("aim distance m", "f32"); d.v("aim distance 2 m", "f32");
       }
@@ -562,10 +637,13 @@ function gmSync(p, d) {
       if (d.v("has_seeker_info", "bit") && d.v("has_seeker", "bit")) d.v("seeker", x => x.skip(x.v("seeker bits", "u32")), x => x + " bits");
       d.align();
       if (d.out) {
-        const st = p.gm?.[k];
         d.pre = "";
-        if (!st) d.list(ds, `uid ${uid} state`, "no base state in the history (delta not applied)");
-        else for (const [nm, v] of gmState(st, fr, nw)) d.list(s, `uid ${uid} state.${nm}`, Array.isArray(v) ? v.join(", ") : v);
+        if (stateFields) for (const [nm, v] of stateFields) d.list(ds, `uid ${uid} state.${nm}`, Array.isArray(v) ? v.join(", ") : v);
+        else {
+          const st = p.gm?.[k];
+          if (!st) d.list(ds, `uid ${uid} state`, "no base state in the history (delta not applied)");
+          else for (const [nm, v] of gmState(st, fr, nw)) d.list(s, `uid ${uid} state.${nm}`, Array.isArray(v) ? v.join(", ") : v);
+        }
       }
       k++;
     }
@@ -597,7 +675,7 @@ function storeSync(p, d) {
       if (!posOnly) {
         d.v("tick", "zigzag", x => `${x} = ${r3(x / 48)} s`);
         d.v("euler", "vec3", x => x.map(r3).join(", "));
-        d.v("velocity m/s", fixed(3, "i16"), x => x.map(v => v / 16).join(", "));
+        d.v("velocity m/s", fixed(3, "i16"), x => x.map(v => r3(v * 2000 / 32767)).join(", "));
         d.v("b8", fixed(3, "i16"), x => x.join(", "));
         if (d.v("has_u16", "bit")) d.v("u16", "varint");
         const fl = d.v("time flags", "u8");
