@@ -5,13 +5,14 @@
 const HEADER = [[0, "u32", "header"], [4, "u32", "magic"], [8, "c128", "level_path"], [136, "c260", "mission_file"],
   [396, "c128", "mission_name"], [524, "c128", "environment"], [652, "c32", "weather"], [684, "u32", "footer_blk_offset"],
   [688, "u64", "difficulty_part_1"], [696, "u64", "difficulty_part_2"], [704, "c20", "unk0"], [724, "u32", "session_type"],
-  [728, "u32", "player_count"], [732, "u64", "session_id"], [740, "u8", "replay_part_number"], [741, "u8", "unk1"],
-  [742, "u16", "segment_length_sec"], [744, "u32", "skies_random_seed"], [748, "u16", "settings_blk_size"],
-  [750, "c29", "unk3"], [779, "bool", "is_world_war"], [780, "c128", "location_name"], [908, "u32", "start_time"],
+  [728, "u32", "player_count"], [732, "u64", "session_id"], [740, "u16", "replay_part_number"],
+  [742, "u16", "segment_length_sec"], [744, "u32", "skies_random_seed"], [748, "u32", "settings_blk_size"],
+  [752, "c23", "unk3"], [775, "i32", "max_respawns"], [779, "bool", "is_world_war"], [780, "c128", "location_name"],
+  [908, "u32", "start_time"],
   [912, "u32", "time_limit"], [916, "u32", "score_limit"], [920, "u32", "kill_limit"], [924, "u32", "game_type"],
   [928, "u32", "restore_type"], [932, "i32", "player_no"], [936, "u32", "unk4"], [940, "u32", "num_attempts"],
   [944, "u32", "max_attempts"], [948, "bool", "is_attempts"], [949, "bool", "is_limited_ammo"],
-  [950, "bool", "is_limited_fuel"], [951, "c13", "unk5"], [964, "u32", "game_mode"], [968, "c128", "chapter_name"],
+  [950, "bool", "is_limited_fuel"], [951, "bool", "is_multiplayer"], [952, "c12", "unk5"], [964, "u32", "game_mode"], [968, "c128", "chapter_name"],
   [1096, "c128", "battle_kill_streak"], [1224, "u16", "snapshot_period_sec"], [1226, "u64", "game_version"]];
 const HEADER_SIZE = 1234;
 const PACKET_TYPES = {0: "EndMarker", 1: "StartMarker", 2: "AircraftSmall", 3: "Chat", 4: "MPI", 5: "NextSegment",
